@@ -1893,7 +1893,7 @@ checkInstTermination theta head_pred
   = check_preds emptyVarSet theta
   where
    head_fvs  = fvType head_pred
-   head_size = sizeType head_pred
+   head_size = kindedSizeType head_pred
 
    check_preds :: VarSet -> [PredType] -> TcM ()
    check_preds foralld_tvs preds = mapM_ (check foralld_tvs) preds
@@ -1902,7 +1902,7 @@ checkInstTermination theta head_pred
    check foralld_tvs pred
      = case classifyPredType pred of
          EqPred {}    -> return ()  -- See #4200.
-         IrredPred {} -> check2 foralld_tvs pred (sizeType pred)
+         IrredPred {} -> check2 foralld_tvs pred (kindedSizeType pred)
          ClassPred cls tys
            | isTerminatingClass cls
            -> return ()
@@ -1913,7 +1913,7 @@ checkInstTermination theta head_pred
            | otherwise          -- Other ClassPreds
            -> check2 foralld_tvs pred bogus_size
            where
-              bogus_size = 1 + sizeTypes (filterOutInvisibleTypes (classTyCon cls) tys)
+              bogus_size = 1 + kindedSizeTypes (filterOutInvisibleTypes (classTyCon cls) tys)
                                -- See Note [Invisible arguments and termination]
 
          ForAllPred tvs _ head_pred'
@@ -2793,6 +2793,22 @@ sizeType (CoercionTy _)    = 0
 
 sizeTypes :: [Type] -> Int
 sizeTypes = foldr ((+) . sizeType) 0
+
+sizeKind :: Kind -> Int
+sizeKind = sizeType
+
+kindedSizeType :: Type -> Int
+kindedSizeType ty@(TyVarTy {})   = sizeKind (typeKind ty)
+kindedSizeType (TyConApp tc tys) = sizeKind (tyConKind tc) + kindedSizeTypes tys
+kindedSizeType ty@(LitTy {})     = sizeKind (typeKind ty)
+kindedSizeType (AppTy fun arg)   = kindedSizeType fun + kindedSizeType arg
+kindedSizeType (FunTy _ arg res) = kindedSizeType arg + kindedSizeType res + 1
+kindedSizeType (ForAllTy _ ty)   = kindedSizeType ty
+kindedSizeType (CastTy ty _)     = kindedSizeType ty
+kindedSizeType (CoercionTy _)    = 0
+
+kindedSizeTypes :: [Type] -> Int
+kindedSizeTypes = foldr ((+) . kindedSizeType) 0
 
 sizeTyConAppArgs :: TyCon -> [Type] -> Int
 sizeTyConAppArgs _tc tys = sizeTypes tys -- (filterOutInvisibleTypes tc tys)
