@@ -4,6 +4,8 @@
 
 -- Functions over HsSyn specialised to RdrName.
 
+-- GJ : error function
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}

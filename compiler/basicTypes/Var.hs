@@ -63,6 +63,7 @@ module Var (
         -- * ArgFlags
         ArgFlag(..), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
+        InferredFlag(..),
 
         -- * TyVar's
         VarBndr(..), TyCoVarBinder, TyVarBinder,
@@ -387,7 +388,7 @@ updateVarTypeM f id = do { ty' <- f (varType id)
 -- permitted by request ('Specified') (visible type application), or
 -- prohibited entirely from appearing in source Haskell ('Inferred')?
 -- See Note [VarBndrs, TyCoVarBinders, TyConBinders, and visibility] in TyCoRep
-data ArgFlag = Inferred | Specified | Required
+data ArgFlag = Inferred | Specified | Required -- GJ : Experiment, combine Inferred & Specified -> drop InferredFlag
   deriving (Eq, Ord, Data)
   -- (<) on ArgFlag means "is less visible than"
 
@@ -493,6 +494,15 @@ property of *Core* types, whereas ForallVisFlag reflects a property of the GHC
 AST. In other words, AnonArgFlag is all about internals, whereas ForallVisFlag
 is all about surface syntax. Therefore, they are kept as separate data types.
 -}
+
+-- | Inferred Flag
+--
+-- Denotes whether a bound type variable should be treated as inferred
+-- ('AsInferred') and thus prohibited from appearing in source Haskell,
+-- or as specified ('AsSpecified') and thus allowing for visible type
+-- application.
+data InferredFlag = AsInferred | AsSpecified
+  deriving (Eq, Ord, Data)
 
 {- *********************************************************************
 *                                                                      *

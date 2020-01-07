@@ -67,6 +67,7 @@ import DataCon          ( DataCon, dataConName )
 import SrcLoc
 import Module
 import BasicTypes
+import Var              ( InferredFlag(..) )
 
 -- compiler/types
 import Type             ( funTyCon )
@@ -93,7 +94,7 @@ import Util             ( looksLikePackageName, fstOf3, sndOf3, thdOf3 )
 import GhcPrelude
 }
 
-%expect 232 -- shift/reduce conflicts
+%expect 254 -- shift/reduce conflicts -- GJ : TODO
 
 {- Last updated: 04 June 2018
 
@@ -1271,9 +1272,9 @@ ty_fam_inst_eqns :: { Located [LTyFamInstEqn GhcPs] }
         | {- empty -}                 { noLoc [] }
 
 ty_fam_inst_eqn :: { Located ([AddAnn],TyFamInstEqn GhcPs) }
-        : 'forall' tv_bndrs '.' type '=' ktype
+        : 'forall' tv_bndrs '.' type '=' ktype -- GJ : TODO atm no expl spec in type families
               {% do { hintExplicitForall $1
-                    ; (eqn,ann) <- mkTyFamInstEqn (Just $2) $4 $6
+                    ; (eqn,ann) <- mkTyFamInstEqn (Just $ hsLTyVarBndr $2) $4 $6 -- GJ : TODO Issue error if any of them are inferred
                     ; return (sLL $1 $>
                                (mu AnnForall $1:mj AnnDot $3:mj AnnEqual $5:ann,eqn)) } }
         | type '=' ktype
@@ -1375,7 +1376,7 @@ opt_datafam_kind_sig :: { Located ([AddAnn], LFamilyResultSig GhcPs) }
 opt_tyfam_kind_sig :: { Located ([AddAnn], LFamilyResultSig GhcPs) }
         :              { noLoc     ([]               , noLoc     (NoSig    noExtField)   )}
         | '::' kind    { sLL $1 $> ([mu AnnDcolon $1], sLL $1 $> (KindSig  noExtField $2))}
-        | '='  tv_bndr { sLL $1 $> ([mj AnnEqual $1] , sLL $1 $> (TyVarSig noExtField $2))}
+        | '='  tv_bndr { sLL $1 $> ([mj AnnEqual $1] , sLL $1 $> (TyVarSig noExtField (fst $2)))} -- GJ : TODO
 
 opt_at_kind_inj_sig :: { Located ([AddAnn], ( LFamilyResultSig GhcPs
                                             , Maybe (LInjectivityAnn GhcPs)))}
@@ -1384,7 +1385,7 @@ opt_at_kind_inj_sig :: { Located ([AddAnn], ( LFamilyResultSig GhcPs
                                  , (sLL $2 $> (KindSig noExtField $2), Nothing)) }
         | '='  tv_bndr '|' injectivity_cond
                 { sLL $1 $> ([mj AnnEqual $1, mj AnnVbar $3]
-                            , (sLL $1 $2 (TyVarSig noExtField $2), Just $4))}
+                            , (sLL $1 $2 (TyVarSig noExtField (fst $2)), Just $4))} -- GJ : TODO
 
 -- tycl_hdr parses the header of a class or data type decl,
 -- which takes the form
@@ -1403,12 +1404,12 @@ tycl_hdr_inst :: { Located ([AddAnn],(Maybe (LHsContext GhcPs), Maybe [LHsTyVarB
         : 'forall' tv_bndrs '.' context '=>' type   {% hintExplicitForall $1
                                                        >> (addAnnotation (gl $4) (toUnicodeAnn AnnDarrow $5) (gl $5)
                                                            >> return (sLL $1 $> ([mu AnnForall $1, mj AnnDot $3]
-                                                                                , (Just $4, Just $2, $6)))
+                                                                                , (Just $4, Just (hsLTyVarBndr $2), $6)))
                                                           )
                                                     }
         | 'forall' tv_bndrs '.' type   {% hintExplicitForall $1
                                           >> return (sLL $1 $> ([mu AnnForall $1, mj AnnDot $3]
-                                                               , (Nothing, Just $2, $4)))
+                                                               , (Nothing, Just (hsLTyVarBndr $2), $4))) -- Some comment
                                        }
         | context '=>' type         {% addAnnotation (gl $1) (toUnicodeAnn AnnDarrow $2) (gl $2)
                                        >> (return (sLL $1 $>([], (Just $1, Nothing, $3))))
@@ -2136,13 +2137,18 @@ bar_types2    :: { [LHsType GhcPs] }  -- Two or more:  ty|ty|ty
         | ktype  '|' bar_types2        {% addAnnotation (gl $1) AnnVbar (gl $2)
                                           >> return ($1 : $3) }
 
-tv_bndrs :: { [LHsTyVarBndr GhcPs] }
+tv_bndrs :: { [(LHsTyVarBndr GhcPs,InferredFlag)] }
          : tv_bndr tv_bndrs             { $1 : $2 }
          | {- empty -}                  { [] }
 
-tv_bndr :: { LHsTyVarBndr GhcPs }
-        : tyvar                         { sL1 $1 (UserTyVar noExtField $1) }
-        | '(' tyvar '::' kind ')'       {% ams (sLL $1 $>  (KindedTyVar noExtField $2 $4))
+tv_bndr :: { (LHsTyVarBndr GhcPs,InferredFlag) }
+        : tyvar                         { sL1 $1 (UserTyVar noExtField $1 , AsSpecified) }
+        | '{' tyvar '}'                 {% ams (sLL $1 $> (UserTyVar noExtField $2 , AsInferred))
+                                               [mop $1, mcp $3] }
+        | '(' tyvar '::' kind ')'       {% ams (sLL $1 $>  (KindedTyVar noExtField $2 $4 , AsSpecified))
+                                               [mop $1,mu AnnDcolon $3
+                                               ,mcp $5] }
+        | '{' tyvar '::' kind '}'       {% ams (sLL $1 $>  (KindedTyVar noExtField $2 $4 , AsInferred))
                                                [mop $1,mu AnnDcolon $3
                                                ,mcp $5] }
 
@@ -2332,7 +2338,7 @@ constr :: { LConDecl GhcPs }
                        (fst $ unLoc $2) }
 
 forall :: { Located ([AddAnn], Maybe [LHsTyVarBndr GhcPs]) }
-        : 'forall' tv_bndrs '.'       { sLL $1 $> ([mu AnnForall $1,mj AnnDot $3], Just $2) }
+        : 'forall' tv_bndrs '.'       { sLL $1 $> ([mu AnnForall $1,mj AnnDot $3], Just (hsLTyVarBndr $2)) } -- GJ
         | {- empty -}                 { noLoc ([], Nothing) }
 
 constr_stuff :: { Located (Located RdrName, HsConDeclDetails GhcPs, Maybe LHsDocString) }

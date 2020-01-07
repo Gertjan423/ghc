@@ -54,6 +54,7 @@ module GHC.Hs.Types (
         hsScopedTvs, hsWcScopedTvs, dropWildCards,
         hsTyVarName, hsAllLTyVarNames, hsLTyVarLocNames,
         hsLTyVarName, hsLTyVarNames, hsLTyVarLocName, hsExplicitLTyVarNames,
+        hsLTyVarBndr,
         splitLHsInstDeclTy, getLHsInstDeclHead, getLHsInstDeclClass_maybe,
         splitLHsPatSynTy,
         splitLHsForAllTy, splitLHsForAllTyInvis,
@@ -93,6 +94,7 @@ import Outputable
 import FastString
 import Maybes( isJust )
 import Util ( count, debugIsOn )
+import Var
 
 import Data.Data hiding ( Fixity, Prefix, Infix )
 
@@ -319,14 +321,14 @@ type LHsKind pass = Located (HsKind pass)
 --  The explicitly-quantified binders in a data/type declaration
 
 -- | Located Haskell Type Variable Binder
-type LHsTyVarBndr pass = Located (HsTyVarBndr pass)
+type LHsTyVarBndr flag pass = Located (HsTyVarBndr flag pass)
                          -- See Note [HsType binders]
 
 -- | Located Haskell Quantified Type Variables
-data LHsQTyVars pass   -- See Note [HsType binders]
+data LHsQTyVars flag pass   -- See Note [HsType binders]
   = HsQTvs { hsq_ext :: XHsQTvs pass
 
-           , hsq_explicit :: [LHsTyVarBndr pass]
+           , hsq_explicit :: [LHsTyVarBndr flag pass]
                 -- Explicit variables, written by the user
                 -- See Note [HsForAllTy tyvar binders]
     }
@@ -342,10 +344,10 @@ type instance XHsQTvs GhcTc = HsQTvsRn
 
 type instance XXLHsQTyVars  (GhcPass _) = NoExtCon
 
-mkHsQTvs :: [LHsTyVarBndr GhcPs] -> LHsQTyVars GhcPs
+mkHsQTvs :: [LHsTyVarBndr flag GhcPs] -> LHsQTyVars GhcPs
 mkHsQTvs tvs = HsQTvs { hsq_ext = noExtField, hsq_explicit = tvs }
 
-hsQTvExplicit :: LHsQTyVars pass -> [LHsTyVarBndr pass]
+hsQTvExplicit :: LHsQTyVars flag pass -> [LHsTyVarBndr flag pass]
 hsQTvExplicit = hsq_explicit
 
 emptyLHsQTvs :: LHsQTyVars GhcRn
@@ -486,13 +488,15 @@ instance OutputableBndr HsIPName where
 --------------------------------------------------
 
 -- | Haskell Type Variable Binder
-data HsTyVarBndr pass
+data HsTyVarBndr flag pass
   = UserTyVar        -- no explicit kinding
          (XUserTyVar pass)
+         flag
          (Located (IdP pass))
         -- See Note [Located RdrNames] in GHC.Hs.Expr
   | KindedTyVar
          (XKindedTyVar pass)
+         flag
          (Located (IdP pass))
          (LHsKind pass)  -- The user-supplied kind signature
         -- ^
@@ -510,7 +514,7 @@ type instance XKindedTyVar  (GhcPass _) = NoExtField
 type instance XXTyVarBndr   (GhcPass _) = NoExtCon
 
 -- | Does this 'HsTyVarBndr' come with an explicit kind annotation?
-isHsKindedTyVar :: HsTyVarBndr pass -> Bool
+isHsKindedTyVar :: HsTyVarBndr flag pass -> Bool
 isHsKindedTyVar (UserTyVar {})   = False
 isHsKindedTyVar (KindedTyVar {}) = True
 isHsKindedTyVar (XTyVarBndr {})  = False
@@ -519,9 +523,9 @@ isHsKindedTyVar (XTyVarBndr {})  = False
 hsTvbAllKinded :: LHsQTyVars pass -> Bool
 hsTvbAllKinded = all (isHsKindedTyVar . unLoc) . hsQTvExplicit
 
-instance NamedThing (HsTyVarBndr GhcRn) where
-  getName (UserTyVar _ v) = unLoc v
-  getName (KindedTyVar _ v _) = unLoc v
+instance NamedThing (HsTyVarBndr flag GhcRn) where
+  getName (UserTyVar _ _ v) = unLoc v
+  getName (KindedTyVar _ _ v _) = unLoc v
   getName (XTyVarBndr nec) = noExtCon nec
 
 -- | Haskell Type
@@ -530,7 +534,7 @@ data HsType pass
       { hst_xforall :: XForAllTy pass
       , hst_fvf     :: ForallVisFlag -- Is this `forall a -> {...}` or
                                      --         `forall a. {...}`?
-      , hst_bndrs   :: [LHsTyVarBndr pass]
+      , hst_bndrs   :: [LHsTyVarBndr flag pass]
                                        -- Explicit, user-supplied 'forall a b c'
       , hst_body    :: LHsType pass      -- body type
       }
@@ -967,7 +971,7 @@ hsWcScopedTvs sig_ty
       L _ (HsForAllTy { hst_fvf = vis_flag
                       , hst_bndrs = tvs }) ->
         ASSERT( vis_flag == ForallInvis ) -- See Note [hsScopedTvs vis_flag]
-        vars ++ nwcs ++ hsLTyVarNames tvs
+        vars ++ nwcs ++ (hsLTyVarNames . hsLTyVarBndr) tvs
       _                                    -> nwcs
 hsWcScopedTvs (HsWC _ (XHsImplicitBndrs nec)) = noExtCon nec
 hsWcScopedTvs (XHsWildCardBndrs nec) = noExtCon nec
@@ -980,7 +984,7 @@ hsScopedTvs sig_ty
   , L _ (HsForAllTy { hst_fvf = vis_flag
                     , hst_bndrs = tvs }) <- sig_ty2
   = ASSERT( vis_flag == ForallInvis ) -- See Note [hsScopedTvs vis_flag]
-    vars ++ hsLTyVarNames tvs
+    vars ++ (hsLTyVarNames . hsLTyVarBndr) tvs
   | otherwise
   = []
 
@@ -1050,6 +1054,9 @@ hsLTyVarName = hsTyVarName . unLoc
 
 hsLTyVarNames :: [LHsTyVarBndr (GhcPass p)] -> [IdP (GhcPass p)]
 hsLTyVarNames = map hsLTyVarName
+
+hsLTyVarBndr :: [(LHsTyVarBndr a,InferredFlag)] -> [LHsTyVarBndr a]
+hsLTyVarBndr = map fst
 
 hsExplicitLTyVarNames :: LHsQTyVars (GhcPass p) -> [IdP (GhcPass p)]
 -- Explicit variables only
@@ -1273,7 +1280,7 @@ splitLHsSigmaTyInvis ty
 -- type (parentheses and all) from them.
 splitLHsForAllTy :: LHsType pass -> ([LHsTyVarBndr pass], LHsType pass)
 splitLHsForAllTy (L _ (HsParTy _ ty)) = splitLHsForAllTy ty
-splitLHsForAllTy (L _ (HsForAllTy { hst_bndrs = tvs, hst_body = body })) = (tvs, body)
+splitLHsForAllTy (L _ (HsForAllTy { hst_bndrs = tvs, hst_body = body })) = (hsLTyVarBndr tvs, body)
 splitLHsForAllTy body              = ([], body)
 
 -- | Like 'splitLHsForAllTy', but only splits type variable binders that
@@ -1294,7 +1301,7 @@ splitLHsForAllTyInvis lty@(L _ ty) =
     HsParTy _ ty' -> splitLHsForAllTyInvis ty'
     HsForAllTy { hst_fvf = fvf', hst_bndrs = tvs', hst_body = body' }
       |  fvf' == ForallInvis
-      -> (tvs', body')
+      -> (hsLTyVarBndr tvs', body')
     _ -> ([], lty)
 
 -- | Decompose a type of the form @context => body@ into its constituent parts.
@@ -1574,7 +1581,7 @@ ppr_mono_lty ty = ppr_mono_ty (unLoc ty)
 
 ppr_mono_ty :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 ppr_mono_ty (HsForAllTy { hst_fvf = fvf, hst_bndrs = tvs, hst_body = ty })
-  = sep [pprHsForAll fvf tvs noLHsContext, ppr_mono_lty ty]
+  = sep [pprHsForAll fvf (hsLTyVarBndr tvs) noLHsContext, ppr_mono_lty ty]
 
 ppr_mono_ty (HsQualTy { hst_ctxt = ctxt, hst_body = ty })
   = sep [pprLHsContextAlways ctxt, ppr_mono_lty ty]

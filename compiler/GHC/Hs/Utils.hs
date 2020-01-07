@@ -657,9 +657,9 @@ typeToLHsType ty
                                       , hst_body = go tau })
 
     go ty@(ForAllTy (Bndr _ argf) _)
-      | (tvs, tau) <- tcSplitForAllTysSameVis argf ty
+      | (tvs, tau) <- tcSplitForAllTysSameVis argf ty -- GJ : Combine inferred and specified, but not required
       = noLoc (HsForAllTy { hst_fvf = argToForallVisFlag argf
-                          , hst_bndrs = map go_tv tvs
+                          , hst_bndrs = map (\tv -> (go_tv tv,AsInferred)) tvs -- GJ : TODO
                           , hst_xforall = noExtField
                           , hst_body = go tau })
     go (TyVarTy tv)         = nlHsTyVar (getRdrName tv)

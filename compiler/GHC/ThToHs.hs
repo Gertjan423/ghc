@@ -44,6 +44,7 @@ import Util
 import FastString
 import Outputable
 import MonadUtils ( foldrM )
+import Var
 
 import qualified Data.ByteString as BS
 import Control.Monad( unless, ap )
@@ -1683,11 +1684,11 @@ cvtPatSynSigTy (ForallT univs reqs (ForallT exis provs ty))
                                                         , hst_xqual = noExtField
                                                         , hst_body = ty' }) }
   | null reqs             = do { l      <- getL
-                               ; univs' <- hsQTvExplicit <$> cvtTvs univs
+                               ; univs' <- hsQTvExplicit <$> cvtTvs univs -- GJ : TODO
                                ; ty'    <- cvtType (ForallT exis provs ty)
                                ; let forTy = HsForAllTy
                                               { hst_fvf = ForallInvis
-                                              , hst_bndrs = univs'
+                                              , hst_bndrs = zip univs' (repeat AsInferred)
                                               , hst_xforall = noExtField
                                               , hst_body = L l cxtTy }
                                      cxtTy = HsQualTy { hst_ctxt = L l []
@@ -1753,7 +1754,7 @@ mkHsForAllTy :: [TH.TyVarBndr]
 mkHsForAllTy tvs loc fvf tvs' rho_ty
   | null tvs  = rho_ty
   | otherwise = L loc $ HsForAllTy { hst_fvf = fvf
-                                   , hst_bndrs = hsQTvExplicit tvs'
+                                   , hst_bndrs = zip (hsQTvExplicit tvs') (repeat AsInferred) -- GJ : TODO
                                    , hst_xforall = noExtField
                                    , hst_body = rho_ty }
 
