@@ -63,7 +63,7 @@ module Var (
         -- * ArgFlags
         ArgFlag(..), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
-        InferredFlag(..),
+        InferredFlag(..), argToInferredFlag,
 
         -- * TyVar's
         VarBndr(..), TyCoVarBinder, TyVarBinder,
@@ -503,6 +503,12 @@ is all about surface syntax. Therefore, they are kept as separate data types.
 -- application.
 data InferredFlag = AsInferred | AsSpecified
   deriving (Eq, Ord, Data)
+
+-- | Convert an 'ArgFlag' to its corresponding 'InferredFlag'
+argToInferredFlag :: ArgFlag -> InferredFlag
+argToInferredFlag Required  = AsSpecified
+argToInferredFlag Specified = AsSpecified
+argToInferredFlag Inferred  = AsInferred
 
 {- *********************************************************************
 *                                                                      *

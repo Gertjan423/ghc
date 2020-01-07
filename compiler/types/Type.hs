@@ -15,6 +15,7 @@ module Type (
 
         -- $representation_types
         TyThing(..), Type, ArgFlag(..), AnonArgFlag(..), ForallVisFlag(..),
+        InferredFlag(..), argToInferredFlag,
         KindOrType, PredType, ThetaType,
         Var, TyVar, isTyVar, TyCoVar, TyCoBinder, TyCoVarBinder, TyVarBinder,
         KnotTied,
@@ -1549,12 +1550,13 @@ splitForAllTys ty = split ty ty []
 -- @'sameVis' argf supplied_argf@ is 'True', where @argf@ is the visibility
 -- of the @ForAllTy@'s binder and @supplied_argf@ is the visibility provided
 -- as an argument to this function.
-splitForAllTysSameVis :: ArgFlag -> Type -> ([TyCoVar], Type)
+-- GJ : TODO Update the documentation, to reflect the returned ArgFlags
+splitForAllTysSameVis :: ArgFlag -> Type -> ([(TyCoVar,ArgFlag)], Type)
 splitForAllTysSameVis supplied_argf ty = split ty ty []
   where
     split orig_ty ty tvs | Just ty' <- coreView ty = split orig_ty ty' tvs
     split _       (ForAllTy (Bndr tv argf) ty) tvs
-      | argf `sameVis` supplied_argf               = split ty ty (tv:tvs)
+      | argf `sameVis` supplied_argf               = split ty ty ((tv,argf):tvs)
     split orig_ty _                            tvs = (reverse tvs, orig_ty)
 
 -- | Like splitForAllTys, but split only for tyvars.

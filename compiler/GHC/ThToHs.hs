@@ -44,7 +44,6 @@ import Util
 import FastString
 import Outputable
 import MonadUtils ( foldrM )
-import Var
 
 import qualified Data.ByteString as BS
 import Control.Monad( unless, ap )

@@ -659,7 +659,7 @@ typeToLHsType ty
     go ty@(ForAllTy (Bndr _ argf) _)
       | (tvs, tau) <- tcSplitForAllTysSameVis argf ty -- GJ : Combine inferred and specified, but not required
       = noLoc (HsForAllTy { hst_fvf = argToForallVisFlag argf
-                          , hst_bndrs = map (\tv -> (go_tv tv,AsInferred)) tvs -- GJ : TODO
+                          , hst_bndrs = map go_tv tvs
                           , hst_xforall = noExtField
                           , hst_body = go tau })
     go (TyVarTy tv)         = nlHsTyVar (getRdrName tv)
@@ -700,8 +700,10 @@ typeToLHsType ty
                  Required  -> f `nlHsAppTy`     arg')
              head (zip args arg_flags)
 
-    go_tv :: TyVar -> LHsTyVarBndr GhcPs
-    go_tv tv = noLoc $ KindedTyVar noExtField (noLoc (getRdrName tv))
+    go_tv :: (TyVar,ArgFlag) -> LHsTyVarBndr InferredFlag GhcPs
+    go_tv (tv,argf) = noLoc $ KindedTyVar noExtField
+                                   (argToInferredFlag argf)
+                                   (noLoc (getRdrName tv))
                                    (go (tyVarKind tv))
 
 {-
