@@ -5,7 +5,7 @@
 \section{@Vars@: Variables}
 -}
 
-{-# LANGUAGE CPP, FlexibleContexts, MultiWayIf, FlexibleInstances, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, FlexibleContexts, MultiWayIf, FlexibleInstances, DeriveDataTypeable, PatternSynonyms #-}
 
 -- |
 -- #name_types#
@@ -61,7 +61,7 @@ module Var (
         mustHaveLocalBinding,
 
         -- * ArgFlags
-        ArgFlag(..), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
+        ArgFlag(Required,Specified,Inferred), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
         InferredFlag(..), argToInferredFlag,
 
@@ -388,9 +388,20 @@ updateVarTypeM f id = do { ty' <- f (varType id)
 -- permitted by request ('Specified') (visible type application), or
 -- prohibited entirely from appearing in source Haskell ('Inferred')?
 -- See Note [VarBndrs, TyCoVarBinders, TyConBinders, and visibility] in TyCoRep
-data ArgFlag = Inferred | Specified | Required -- GJ : Experiment, combine Inferred & Specified -> drop InferredFlag
+data ArgFlag = Invisible Specificity
+             | Required
   deriving (Eq, Ord, Data)
   -- (<) on ArgFlag means "is less visible than"
+
+data Specificity = SInferred
+                 | SSpecified
+  deriving (Eq, Ord, Data)
+
+pattern Inferred, Specified :: ArgFlag
+pattern Inferred  = Invisible SInferred
+pattern Specified = Invisible SSpecified
+
+{-# COMPLETE Required, Specified, Inferred #-}
 
 -- | Does this 'ArgFlag' classify an argument that is written in Haskell?
 isVisibleArgFlag :: ArgFlag -> Bool
@@ -405,13 +416,12 @@ isInvisibleArgFlag = not . isVisibleArgFlag
 -- arguments are visible, others are not. So this function
 -- equates 'Specified' and 'Inferred'. Used for printing.
 sameVis :: ArgFlag -> ArgFlag -> Bool
-sameVis Required Required = True
-sameVis Required _        = False
-sameVis _        Required = False
-sameVis _        _        = True
+sameVis Required      Required      = True
+sameVis (Invisible _) (Invisible _) = True
+sameVis _             _             = False
 
 instance Outputable ArgFlag where
-  ppr Required  = text "[req]"
+  ppr Required  = text "[req]" -- GJ : TODO This introduces incomplete pattern match warnings
   ppr Specified = text "[spec]"
   ppr Inferred  = text "[infrd]"
 
@@ -433,6 +443,7 @@ instance Binary ArgFlag where
 -- but also because it is used in IfaceType, rather early in the
 -- compilation chain
 -- See Note [AnonArgFlag vs. ForallVisFlag]
+-- GJ : We might be able to drop this and just replace it with the new ArgFlag?
 data AnonArgFlag
   = VisArg    -- ^ Used for @(->)@: an ordinary non-dependent arrow.
               --   The argument is visible in source code.
@@ -458,6 +469,8 @@ instance Binary AnonArgFlag where
 -- (e.g., @forall a b -> {...}@, with an arrow)?
 
 -- See Note [AnonArgFlag vs. ForallVisFlag]
+-- GJ : We might be able to drop this and just replace it with the new ArgFlag?
+-- GJ : This idea does contradict the above note...
 data ForallVisFlag
   = ForallVis   -- ^ A visible @forall@ (with an arrow)
   | ForallInvis -- ^ An invisible @forall@ (with a dot)

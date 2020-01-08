@@ -472,6 +472,7 @@ pprHoleFit (HFDC sWrp sWrpVars sTy sProv sMs) (HoleFit {..}) =
                                 -- variables (#16456)
                                 Inferred  -> empty
                                 Required  -> pprPanic "pprHoleFit: bad Required"
+                                -- GJ IF : TODO Could this be improved by passing in a Specificity instead of a full ArgFlag?
                                                          (ppr b <+> ppr arg)
        tyAppVars = sep $ punctuate comma $
            zipWithEqual "pprHoleFit" (\v t -> ppr (binderVar v) <+>
