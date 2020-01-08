@@ -63,7 +63,7 @@ module Var (
         -- * ArgFlags
         ArgFlag(Required,Specified,Inferred), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
-        InferredFlag(..), argToInferredFlag,
+        Specificity(..), argFlagToSpecificity,
 
         -- * TyVar's
         VarBndr(..), TyCoVarBinder, TyVarBinder,
@@ -421,7 +421,7 @@ sameVis (Invisible _) (Invisible _) = True
 sameVis _             _             = False
 
 instance Outputable ArgFlag where
-  ppr Required  = text "[req]" -- GJ : TODO This introduces incomplete pattern match warnings
+  ppr Required  = text "[req]"
   ppr Specified = text "[spec]"
   ppr Inferred  = text "[infrd]"
 
@@ -437,13 +437,17 @@ instance Binary ArgFlag where
       1 -> return Specified
       _ -> return Inferred
 
+-- | Convert an 'ArgFlag' to its corresponding 'Specificity'.
+argFlagToSpecificity :: ArgFlag -> Specificity
+argFlagToSpecificity Required      = SSpecified
+argFlagToSpecificity (Invisible s) = s
+
 -- | The non-dependent version of 'ArgFlag'.
 
 -- Appears here partly so that it's together with its friend ArgFlag,
 -- but also because it is used in IfaceType, rather early in the
 -- compilation chain
 -- See Note [AnonArgFlag vs. ForallVisFlag]
--- GJ : We might be able to drop this and just replace it with the new ArgFlag?
 data AnonArgFlag
   = VisArg    -- ^ Used for @(->)@: an ordinary non-dependent arrow.
               --   The argument is visible in source code.
@@ -469,8 +473,6 @@ instance Binary AnonArgFlag where
 -- (e.g., @forall a b -> {...}@, with an arrow)?
 
 -- See Note [AnonArgFlag vs. ForallVisFlag]
--- GJ : We might be able to drop this and just replace it with the new ArgFlag?
--- GJ : This idea does contradict the above note...
 data ForallVisFlag
   = ForallVis   -- ^ A visible @forall@ (with an arrow)
   | ForallInvis -- ^ An invisible @forall@ (with a dot)
@@ -508,20 +510,21 @@ AST. In other words, AnonArgFlag is all about internals, whereas ForallVisFlag
 is all about surface syntax. Therefore, they are kept as separate data types.
 -}
 
--- | Inferred Flag
---
--- Denotes whether a bound type variable should be treated as inferred
--- ('AsInferred') and thus prohibited from appearing in source Haskell,
--- or as specified ('AsSpecified') and thus allowing for visible type
--- application.
-data InferredFlag = AsInferred | AsSpecified
-  deriving (Eq, Ord, Data)
+-- -- | Inferred Flag
+-- --
+-- -- Denotes whether a bound type variable should be treated as inferred
+-- -- ('AsInferred') and thus prohibited from appearing in source Haskell,
+-- -- or as specified ('AsSpecified') and thus allowing for visible type
+-- -- application.
+-- -- GJ : TODO Remove
+-- data InferredFlag = AsInferred | AsSpecified
+--   deriving (Eq, Ord, Data)
 
--- | Convert an 'ArgFlag' to its corresponding 'InferredFlag'
-argToInferredFlag :: ArgFlag -> InferredFlag
-argToInferredFlag Required  = AsSpecified
-argToInferredFlag Specified = AsSpecified
-argToInferredFlag Inferred  = AsInferred
+-- -- | Convert an 'ArgFlag' to its corresponding 'InferredFlag'
+-- argToInferredFlag :: ArgFlag -> InferredFlag
+-- argToInferredFlag Required  = AsSpecified
+-- argToInferredFlag Specified = AsSpecified
+-- argToInferredFlag Inferred  = AsInferred
 
 {- *********************************************************************
 *                                                                      *

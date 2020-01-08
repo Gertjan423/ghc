@@ -15,7 +15,7 @@ module Type (
 
         -- $representation_types
         TyThing(..), Type, ArgFlag(..), AnonArgFlag(..), ForallVisFlag(..),
-        InferredFlag(..), argToInferredFlag,
+        Specificity(..), argFlagToSpecificity,
         KindOrType, PredType, ThetaType,
         Var, TyVar, isTyVar, TyCoVar, TyCoBinder, TyCoVarBinder, TyVarBinder,
         KnotTied,

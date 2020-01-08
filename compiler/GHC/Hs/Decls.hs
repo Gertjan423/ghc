@@ -1348,7 +1348,7 @@ data ConDecl pass
       -- AnnForall and AnnDot.
       , con_forall  :: Located Bool      -- ^ True <=> explicit forall
                                          --   False => hsq_explicit is empty
-      , con_qvars   :: LHsQTyVars InferredFlag pass
+      , con_qvars   :: LHsQTyVars Specificity pass
                        -- Whether or not there is an /explicit/ forall, we still
                        -- need to capture the implicitly-bound type/kind variables
 
@@ -1369,7 +1369,7 @@ data ConDecl pass
                               --     e.g. data T a = forall b. MkT b (b->a)
                               --     con_ex_tvs = {b}
                               -- False => con_ex_tvs is empty
-      , con_ex_tvs :: [LHsTyVarBndr InferredFlag pass]      -- ^ Existentials only
+      , con_ex_tvs :: [LHsTyVarBndr Specificity pass]      -- ^ Existentials only
       , con_mb_cxt :: Maybe (LHsContext pass)  -- ^ User-written context (if any)
       , con_args   :: HsConDeclDetails pass    -- ^ Arguments; can be InfixCon
 
@@ -2193,7 +2193,7 @@ data RuleDecl pass
        , rd_name :: Located (SourceText,RuleName)
            -- ^ Note [Pragma source text] in BasicTypes
        , rd_act  :: Activation
-       , rd_tyvs :: Maybe [LHsTyVarBndr InferredFlag (NoGhcTc pass)]
+       , rd_tyvs :: Maybe [LHsTyVarBndr Specificity (NoGhcTc pass)]
            -- ^ Forall'd type vars
        , rd_tmvs :: [LRuleBndr pass]
            -- ^ Forall'd term vars, before typechecking; after typechecking

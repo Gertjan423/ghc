@@ -1860,7 +1860,7 @@ kcDeclHeader
   :: InitialKindStrategy
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
-  -> LHsQTyVars GhcRn  -- ^ Binders in the header
+  -> LHsQTyVars () GhcRn  -- ^ Binders in the header
   -> TcM ContextKind   -- ^ The result kind
   -> TcM TcTyCon       -- ^ A suitably-kinded TcTyCon
 kcDeclHeader (InitialKindCheck msig) = kcCheckDeclHeader msig
@@ -1887,7 +1887,7 @@ kcCheckDeclHeader
   :: SAKS_or_CUSK
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
-  -> LHsQTyVars GhcRn  -- ^ Binders in the header
+  -> LHsQTyVars () GhcRn  -- ^ Binders in the header
   -> TcM ContextKind   -- ^ The result kind. AnyKind == no result signature
   -> TcM TcTyCon       -- ^ A suitably-kinded generalized TcTyCon
 kcCheckDeclHeader (SAKS sig) = kcCheckDeclHeader_sig sig
@@ -1896,7 +1896,7 @@ kcCheckDeclHeader CUSK       = kcCheckDeclHeader_cusk
 kcCheckDeclHeader_cusk
   :: Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
-  -> LHsQTyVars GhcRn  -- ^ Binders in the header
+  -> LHsQTyVars () GhcRn  -- ^ Binders in the header
   -> TcM ContextKind   -- ^ The result kind
   -> TcM TcTyCon       -- ^ A suitably-kinded generalized TcTyCon
 kcCheckDeclHeader_cusk name flav
@@ -1978,7 +1978,7 @@ kcCheckDeclHeader_cusk _ _ (XLHsQTyVars nec) _ = noExtCon nec
 kcInferDeclHeader
   :: Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
-  -> LHsQTyVars GhcRn
+  -> LHsQTyVars () GhcRn
   -> TcM ContextKind   -- ^ The result kind
   -> TcM TcTyCon       -- ^ A suitably-kinded non-generalized TcTyCon
 kcInferDeclHeader name flav
@@ -2035,7 +2035,7 @@ kcCheckDeclHeader_sig
   :: Kind              -- ^ Standalone kind signature, fully zonked! (zonkTcTypeToType)
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
-  -> LHsQTyVars GhcRn  -- ^ Binders in the header
+  -> LHsQTyVars () GhcRn  -- ^ Binders in the header
   -> TcM ContextKind   -- ^ The result kind. AnyKind == no result signature
   -> TcM TcTyCon       -- ^ A suitably-kinded TcTyCon
 kcCheckDeclHeader_sig kisig name flav ktvs kc_res_ki =
@@ -2221,8 +2221,8 @@ kcCheckDeclHeader_sig kisig name flav ktvs kc_res_ki =
     check_zipped_binder (ZippedBinder _ Nothing) = return ()
     check_zipped_binder (ZippedBinder tb (Just b)) =
       case unLoc b of
-        UserTyVar _ _ -> return ()
-        KindedTyVar _ v v_hs_ki -> do
+        UserTyVar _ _ _ -> return ()
+        KindedTyVar _ _ v v_hs_ki -> do
           v_ki <- tcLHsKindSig (TyVarBndrKindCtxt (unLoc v)) v_hs_ki
           discardResult $ -- See Note [discardResult in kcCheckDeclHeader_sig]
             unifyKind (Just (HsTyVar noExtField NotPromoted v))
@@ -2246,14 +2246,14 @@ kcCheckDeclHeader_sig kisig name flav ktvs kc_res_ki =
 
 -- A quantifier from a kind signature zipped with a user-written binder for it.
 data ZippedBinder =
-  ZippedBinder TyBinder (Maybe (LHsTyVarBndr GhcRn))
+  ZippedBinder TyBinder (Maybe (LHsTyVarBndr () GhcRn)) -- GJ : TODO
 
 -- See Note [Arity inference in kcCheckDeclHeader_sig]
 zipBinders
   :: Kind                      -- kind signature
-  -> [LHsTyVarBndr GhcRn]      -- user-written binders
+  -> [LHsTyVarBndr () GhcRn]      -- user-written binders
   -> ([ZippedBinder],          -- zipped binders
-      [LHsTyVarBndr GhcRn],    -- remaining user-written binders
+      [LHsTyVarBndr () GhcRn],    -- remaining user-written binders
       Kind)                    -- remainder of the kind signature
 zipBinders = zip_binders []
   where
@@ -2275,7 +2275,7 @@ zipBinders = zip_binders []
           in
             zip_binders (zb:acc) ki' bs'
 
-tooManyBindersErr :: Kind -> [LHsTyVarBndr GhcRn] -> SDoc
+tooManyBindersErr :: Kind -> [LHsTyVarBndr () GhcRn] -> SDoc
 tooManyBindersErr ki bndrs =
    hang (text "Not a function kind:")
       4 (ppr ki) $$
@@ -2627,7 +2627,7 @@ newFlexiKindedTyVarTyVar = newFlexiKindedTyVar newTyVarTyVar
 --------------------------------------
 
 bindExplicitTKBndrs_Skol, bindExplicitTKBndrs_Tv
-    :: [LHsTyVarBndr GhcRn]
+    :: [LHsTyVarBndr flag GhcRn]
     -> TcM a
     -> TcM ([TcTyVar], a)
 
@@ -2636,7 +2636,7 @@ bindExplicitTKBndrs_Tv   = bindExplicitTKBndrsX (tcHsTyVarBndr newTyVarTyVar)
 
 bindExplicitTKBndrs_Q_Skol, bindExplicitTKBndrs_Q_Tv
     :: ContextKind
-    -> [LHsTyVarBndr GhcRn]
+    -> [LHsTyVarBndr () GhcRn]
     -> TcM a
     -> TcM ([TcTyVar], a)
 
@@ -2644,8 +2644,8 @@ bindExplicitTKBndrs_Q_Skol ctxt_kind = bindExplicitTKBndrsX (tcHsQTyVarBndr ctxt
 bindExplicitTKBndrs_Q_Tv   ctxt_kind = bindExplicitTKBndrsX (tcHsQTyVarBndr ctxt_kind newTyVarTyVar)
 
 bindExplicitTKBndrsX
-    :: (HsTyVarBndr GhcRn -> TcM TcTyVar)
-    -> [LHsTyVarBndr GhcRn]
+    :: (HsTyVarBndr flag GhcRn -> TcM TcTyVar)
+    -> [LHsTyVarBndr flag GhcRn]
     -> TcM a
     -> TcM ([TcTyVar], a)  -- Returned [TcTyVar] are in 1-1 correspondence
                            -- with the passed-in [LHsTyVarBndr]
@@ -2668,12 +2668,12 @@ bindExplicitTKBndrsX tc_tv hs_tvs thing_inside
 
 -----------------
 tcHsTyVarBndr :: (Name -> Kind -> TcM TyVar)
-              -> HsTyVarBndr GhcRn -> TcM TcTyVar
+              -> HsTyVarBndr flag GhcRn -> TcM TcTyVar
 -- Returned TcTyVar has the same name; no cloning
-tcHsTyVarBndr new_tv (UserTyVar _ (L _ tv_nm))
+tcHsTyVarBndr new_tv (UserTyVar _ _ (L _ tv_nm))
   = do { kind <- newMetaKindVar
        ; new_tv tv_nm kind }
-tcHsTyVarBndr new_tv (KindedTyVar _ (L _ tv_nm) lhs_kind)
+tcHsTyVarBndr new_tv (KindedTyVar _ _ (L _ tv_nm) lhs_kind)
   = do { kind <- tcLHsKindSig (TyVarBndrKindCtxt tv_nm) lhs_kind
        ; new_tv tv_nm kind }
 tcHsTyVarBndr _ (XTyVarBndr nec) = noExtCon nec
@@ -2681,18 +2681,18 @@ tcHsTyVarBndr _ (XTyVarBndr nec) = noExtCon nec
 -----------------
 tcHsQTyVarBndr :: ContextKind
                -> (Name -> Kind -> TcM TyVar)
-               -> HsTyVarBndr GhcRn -> TcM TcTyVar
+               -> HsTyVarBndr () GhcRn -> TcM TcTyVar
 -- Just like tcHsTyVarBndr, but also
 --   - uses the in-scope TyVar from class, if it exists
 --   - takes a ContextKind to use for the no-sig case
-tcHsQTyVarBndr ctxt_kind new_tv (UserTyVar _ (L _ tv_nm))
+tcHsQTyVarBndr ctxt_kind new_tv (UserTyVar _ _ (L _ tv_nm))
   = do { mb_tv <- tcLookupLcl_maybe tv_nm
        ; case mb_tv of
            Just (ATyVar _ tv) -> return tv
            _ -> do { kind <- newExpectedKind ctxt_kind
                    ; new_tv tv_nm kind } }
 
-tcHsQTyVarBndr _ new_tv (KindedTyVar _ (L _ tv_nm) lhs_kind)
+tcHsQTyVarBndr _ new_tv (KindedTyVar _ _ (L _ tv_nm) lhs_kind)
   = do { kind <- tcLHsKindSig (TyVarBndrKindCtxt tv_nm) lhs_kind
        ; mb_tv <- tcLookupLcl_maybe tv_nm
        ; case mb_tv of

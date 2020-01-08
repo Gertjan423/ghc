@@ -1161,8 +1161,8 @@ get_fam_decl_initial_kind mb_parent_tycon
                , fdInfo      = info }
   = kcDeclHeader InitialKindInfer name flav ktvs $
     case resultSig of
-      KindSig _ ki                          -> TheKind <$> tcLHsKindSig ctxt ki
-      TyVarSig _ (L _ (KindedTyVar _ _ ki)) -> TheKind <$> tcLHsKindSig ctxt ki
+      KindSig _ ki                            -> TheKind <$> tcLHsKindSig ctxt ki
+      TyVarSig _ (L _ (KindedTyVar _ _ _ ki)) -> TheKind <$> tcLHsKindSig ctxt ki
       _ -- open type families have * return kind by default
         | tcFlavourIsOpen flav              -> return (TheKind liftedTypeKind)
                -- closed type families have their return kind inferred
@@ -2456,7 +2456,7 @@ Simple, neat, but a little non-obvious!
 
 --------------------------
 tcTyFamInstEqnGuts :: TyCon -> AssocInstInfo
-                   -> [Name] -> [LHsTyVarBndr GhcRn]  -- Implicit and explicicit binder
+                   -> [Name] -> [LHsTyVarBndr () GhcRn]  -- Implicit and explicicit binder
                    -> HsTyPats GhcRn                  -- Patterns
                    -> LHsType GhcRn                   -- RHS
                    -> TcM ([TyVar], [TcType], TcType)      -- (tyvars, pats, rhs)

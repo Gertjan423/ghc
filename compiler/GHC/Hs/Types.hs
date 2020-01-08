@@ -532,7 +532,7 @@ data HsType pass
       { hst_xforall :: XForAllTy pass
       , hst_fvf     :: ForallVisFlag -- Is this `forall a -> {...}` or
                                      --         `forall a. {...}`?
-      , hst_bndrs   :: [LHsTyVarBndr InferredFlag pass]
+      , hst_bndrs   :: [LHsTyVarBndr Specificity pass]
                                        -- Explicit, user-supplied 'forall a b c'
       , hst_body    :: LHsType pass      -- body type
       }
@@ -1221,9 +1221,9 @@ The SrcSpan is the span of the original HsPar
 -- generally possible to take the returned types and reconstruct the original
 -- type (parentheses and all) from them.
 splitLHsPatSynTy :: LHsType pass
-                 -> ( [LHsTyVarBndr InferredFlag pass]    -- universals
+                 -> ( [LHsTyVarBndr Specificity pass]    -- universals
                     , LHsContext pass        -- required constraints
-                    , [LHsTyVarBndr InferredFlag pass]    -- existentials
+                    , [LHsTyVarBndr Specificity pass]    -- existentials
                     , LHsContext pass        -- provided constraints
                     , LHsType pass)          -- body type
 splitLHsPatSynTy ty = (univs, reqs, exis, provs, ty4)
@@ -1241,7 +1241,7 @@ splitLHsPatSynTy ty = (univs, reqs, exis, provs, ty4)
 -- generally possible to take the returned types and reconstruct the original
 -- type (parentheses and all) from them.
 splitLHsSigmaTy :: LHsType pass
-                -> ([LHsTyVarBndr InferredFlag pass], LHsContext pass, LHsType pass)
+                -> ([LHsTyVarBndr Specificity pass], LHsContext pass, LHsType pass)
 splitLHsSigmaTy ty
   | (tvs, ty1)  <- splitLHsForAllTy ty
   , (ctxt, ty2) <- splitLHsQualTy ty1
@@ -1260,7 +1260,7 @@ splitLHsSigmaTy ty
 -- generally possible to take the returned types and reconstruct the original
 -- type (parentheses and all) from them.
 splitLHsSigmaTyInvis :: LHsType pass
-                     -> ([LHsTyVarBndr InferredFlag pass], LHsContext pass, LHsType pass)
+                     -> ([LHsTyVarBndr Specificity pass], LHsContext pass, LHsType pass)
 splitLHsSigmaTyInvis ty
   | (tvs,  ty1) <- splitLHsForAllTyInvis ty
   , (ctxt, ty2) <- splitLHsQualTy ty1
@@ -1273,7 +1273,7 @@ splitLHsSigmaTyInvis ty
 -- such as @(forall a. <...>)@. The downside to this is that it is not
 -- generally possible to take the returned types and reconstruct the original
 -- type (parentheses and all) from them.
-splitLHsForAllTy :: LHsType pass -> ([LHsTyVarBndr InferredFlag pass], LHsType pass)
+splitLHsForAllTy :: LHsType pass -> ([LHsTyVarBndr Specificity pass], LHsType pass)
 splitLHsForAllTy (L _ (HsParTy _ ty)) = splitLHsForAllTy ty
 splitLHsForAllTy (L _ (HsForAllTy { hst_bndrs = tvs, hst_body = body })) = (tvs, body)
 splitLHsForAllTy body              = ([], body)
@@ -1290,7 +1290,7 @@ splitLHsForAllTy body              = ([], body)
 -- such as @(forall a. <...>)@. The downside to this is that it is not
 -- generally possible to take the returned types and reconstruct the original
 -- type (parentheses and all) from them.
-splitLHsForAllTyInvis :: LHsType pass -> ([LHsTyVarBndr InferredFlag pass], LHsType pass)
+splitLHsForAllTyInvis :: LHsType pass -> ([LHsTyVarBndr Specificity pass], LHsType pass)
 splitLHsForAllTyInvis lty@(L _ ty) =
   case ty of
     HsParTy _ ty' -> splitLHsForAllTyInvis ty'

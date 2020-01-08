@@ -4,8 +4,6 @@
 
 -- Functions over HsSyn specialised to RdrName.
 
--- GJ : TODO function that drops the InferredFlags and throws an error if any of them are inferred
-
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -36,6 +34,7 @@ module   RdrHsSyn (
         mkRdrRecordCon, mkRdrRecordUpd,
         setRdrNameSpace,
         filterCTuple,
+        fromSpecTyVarBndr, fromSpecTyVarBndrs,
 
         cvBindGroup,
         cvBindsAndSigs,
@@ -116,7 +115,7 @@ import BasicTypes
 import TcEvidence       ( idHsWrapper )
 import Lexer
 import Lexeme           ( isLexCon )
-import Type             ( TyThing(..), funTyCon, InferredFlag )
+import Type             ( TyThing(..), funTyCon, Specificity(..) )
 import TysWiredIn       ( cTupleTyConName, tupleTyCon, tupleDataCon,
                           nilDataConName, nilDataConKey,
                           listTyConName, listTyConKey, eqTyCon_RDR,
@@ -382,6 +381,20 @@ mkRoleAnnotDecl loc tycon roles
       -- will this last case ever happen??
     suggestions list = hang (text "Perhaps you meant one of these:")
                        2 (pprWithCommas (quotes . ppr) list)
+
+fromSpecTyVarBndrs :: [LHsTyVarBndr Specificity GhcPs] -> P [LHsTyVarBndr () GhcPs]
+fromSpecTyVarBndrs = mapM fromSpecTyVarBndr
+
+fromSpecTyVarBndr :: LHsTyVarBndr Specificity GhcPs -> P (LHsTyVarBndr () GhcPs)
+fromSpecTyVarBndr (L loc (UserTyVar xtv flag idp)) = case flag of
+  SSpecified -> return $ L loc $ UserTyVar xtv () idp
+  SInferred  -> addFatalError loc
+                  (text "Inferred type variables are not allowed here")
+fromSpecTyVarBndr (L loc (KindedTyVar xtv flag idp k)) = case flag of
+  SSpecified -> return $ L loc $ KindedTyVar xtv () idp k
+  SInferred  -> addFatalError loc
+                  (text "Inferred type variables are not allowed here")
+fromSpecTyVarBndr (L loc (XTyVarBndr bndr)) = return (L loc (XTyVarBndr bndr))
 
 {- **********************************************************************
 
@@ -652,7 +665,7 @@ recordPatSynErr loc pat =
     text "record syntax not supported for pattern synonym declarations:" $$
     ppr pat
 
-mkConDeclH98 :: Located RdrName -> Maybe [LHsTyVarBndr InferredFlag GhcPs]
+mkConDeclH98 :: Located RdrName -> Maybe [LHsTyVarBndr Specificity GhcPs]
                 -> Maybe (LHsContext GhcPs) -> HsConDeclDetails GhcPs
                 -> ConDecl GhcPs
 
@@ -801,7 +814,7 @@ eitherToP (Left (loc, doc)) = addFatalError loc doc
 eitherToP (Right thing)     = return thing
 
 checkTyVars :: SDoc -> SDoc -> Located RdrName -> [LHsTypeArg GhcPs]
-            -> P ( LHsQTyVars flag GhcPs  -- the synthesized type variables
+            -> P ( LHsQTyVars () GhcPs  -- the synthesized type variables
                  , [AddAnn] )        -- action which adds annotations
 -- ^ Check whether the given list of type parameters are all type variables
 -- (possibly with a kind signature).
@@ -821,18 +834,18 @@ checkTyVars pp_what equals_or_where tc tparms
                             <+> text "declaration for" <+> quotes (ppr tc)]
         -- Keep around an action for adjusting the annotations of extra parens
     chkParens :: [AddAnn] -> LHsType GhcPs
-              -> P (LHsTyVarBndr InferredFlag GhcPs, [AddAnn])
+              -> P (LHsTyVarBndr () GhcPs, [AddAnn])
     chkParens acc (L l (HsParTy _ ty)) = chkParens (mkParensApiAnn l ++ acc) ty
     chkParens acc ty = do
       tv <- chk ty
       return (tv, reverse acc)
 
         -- Check that the name space is correct!
-    chk :: LHsType GhcPs -> P (LHsTyVarBndr InferredFlag GhcPs)
+    chk :: LHsType GhcPs -> P (LHsTyVarBndr () GhcPs)
     chk (L l (HsKindSig _ (L lv (HsTyVar _ _ (L _ tv))) k))
-        | isRdrTyVar tv    = return (L l (KindedTyVar noExtField (L lv tv) k))
+        | isRdrTyVar tv    = return (L l (KindedTyVar noExtField () (L lv tv) k))
     chk (L l (HsTyVar _ _ (L ltv tv)))
-        | isRdrTyVar tv    = return (L l (UserTyVar noExtField (L ltv tv)))
+        | isRdrTyVar tv    = return (L l (UserTyVar noExtField () (L ltv tv)))
     chk t@(L loc _)
         = addFatalError loc $
                 vcat [ text "Unexpected type" <+> quotes (ppr t)
@@ -879,11 +892,12 @@ mkRuleBndrs = fmap (fmap cvt_one)
           RuleBndrSig noExtField v (mkLHsSigWcType sig)
 
 -- turns RuleTyTmVars into HsTyVarBndrs - this is more interesting
-mkRuleTyVarBndrs :: [LRuleTyTmVar] -> [LHsTyVarBndr () GhcPs] -- GJ : TODO not sure about this
+mkRuleTyVarBndrs :: [LRuleTyTmVar] -> [LHsTyVarBndr Specificity GhcPs]
 mkRuleTyVarBndrs = fmap (fmap cvt_one)
-  where cvt_one (RuleTyTmVar v Nothing)    = UserTyVar   noExtField (fmap tm_to_ty v)
+  where cvt_one (RuleTyTmVar v Nothing)
+          = UserTyVar noExtField SSpecified (fmap tm_to_ty v) -- GJ : TODO Temporarily hardcoded
         cvt_one (RuleTyTmVar v (Just sig))
-          = KindedTyVar noExtField (fmap tm_to_ty v) sig
+          = KindedTyVar noExtField SSpecified (fmap tm_to_ty v) sig -- GJ : TODO Temporarily hardcoded
     -- takes something in namespace 'varName' to something in namespace 'tvName'
         tm_to_ty (Unqual occ) = Unqual (setOccNameSpace tvName occ)
         tm_to_ty _ = panic "mkRuleTyVarBndrs"

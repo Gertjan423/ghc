@@ -895,7 +895,7 @@ mkDataCon :: Name
           -> [TyVarBinder]  -- ^ User-written 'TyVarBinder's.
                             --   These must be Inferred/Specified.
                             --   See @Note [TyVarBinders in DataCons]@
-                            -- GJ IF : TODO Change this to an InferredFlag?
+                            -- GJ IF : TODO Change this to an InferredFlag!
           -> [EqSpec]       -- ^ GADT equalities
           -> KnotTied ThetaType -- ^ Theta-type occurring before the arguments proper
           -> [KnotTied Type]    -- ^ Original argument types

@@ -295,12 +295,12 @@ no_anon_wc lty = go lty
 
     gos = all go
 
-no_anon_wc_bndrs :: [LHsTyVarBndr GhcRn] -> Bool
+no_anon_wc_bndrs :: [LHsTyVarBndr flag GhcRn] -> Bool
 no_anon_wc_bndrs ltvs = all (go . unLoc) ltvs
   where
-    go (UserTyVar _ _)      = True
-    go (KindedTyVar _ _ ki) = no_anon_wc ki
-    go (XTyVarBndr nec)     = noExtCon nec
+    go (UserTyVar _ _ _)      = True
+    go (KindedTyVar _ _ _ ki) = no_anon_wc ki
+    go (XTyVarBndr nec)       = noExtCon nec
 
 {- Note [Fail eagerly on bad signatures]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
