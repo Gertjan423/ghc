@@ -709,6 +709,8 @@ tc_hs_type mode (HsOpTy _ ty1 (L _ op) ty2) exp_kind
   = tc_fun_type mode ty1 ty2 exp_kind
 
 --------- Foralls
+-- GJ : TODO Add check that we don't combine ForallVis with Inferred
+-- GJ : Extend argf with 3rd case (Inferred) and make a list instead of a single var.
 tc_hs_type mode forall@(HsForAllTy { hst_fvf = fvf, hst_bndrs = hs_tvs
                                    , hst_body = ty }) exp_kind
   = do { (tclvl, wanted, (tvs', ty'))
@@ -2245,7 +2247,7 @@ kcCheckDeclHeader_sig kisig name flav ktvs kc_res_ki =
 
 -- A quantifier from a kind signature zipped with a user-written binder for it.
 data ZippedBinder =
-  ZippedBinder TyBinder (Maybe (LHsTyVarBndr () GhcRn)) -- GJ : TODO
+  ZippedBinder TyBinder (Maybe (LHsTyVarBndr () GhcRn)) -- GJ : Only used for declarations, which do not feature expl specificity flags
 
 -- See Note [Arity inference in kcCheckDeclHeader_sig]
 zipBinders
@@ -2642,6 +2644,7 @@ bindExplicitTKBndrs_Q_Skol, bindExplicitTKBndrs_Q_Tv
 bindExplicitTKBndrs_Q_Skol ctxt_kind = bindExplicitTKBndrsX (tcHsQTyVarBndr ctxt_kind newSkolemTyVar)
 bindExplicitTKBndrs_Q_Tv   ctxt_kind = bindExplicitTKBndrsX (tcHsQTyVarBndr ctxt_kind newTyVarTyVar)
 
+-- GJ : TODO Update this function to return a Bndr of TcTyVar and its Specificity
 bindExplicitTKBndrsX
     :: (HsTyVarBndr flag GhcRn -> TcM TcTyVar)
     -> [LHsTyVarBndr flag GhcRn]

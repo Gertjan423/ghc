@@ -798,7 +798,7 @@ bindLRdrNames rdrs thing_inside
          thing_inside var_names }
 
 ---------------
-bindHsQTyVars :: forall a b flag. -- GJ : TODO
+bindHsQTyVars :: forall a b flag.
                  HsDocContext
               -> Maybe SDoc         -- Just d => check for unused tvs
                                     --   d is a phrase like "in the type ..."
@@ -984,7 +984,6 @@ bindLHsTyVarBndrs doc mb_in_doc mb_assoc tv_bndrs thing_inside
       Just in_doc -> warnUnusedForAll in_doc tv_bndr fvs
       Nothing     -> return ()
 
--- GJ : TODO
 bindLHsTyVarBndr :: HsDocContext
                  -> Maybe a   -- associated class
                  -> LHsTyVarBndr flag GhcPs

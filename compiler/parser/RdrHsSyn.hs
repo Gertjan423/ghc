@@ -892,12 +892,13 @@ mkRuleBndrs = fmap (fmap cvt_one)
           RuleBndrSig noExtField v (mkLHsSigWcType sig)
 
 -- turns RuleTyTmVars into HsTyVarBndrs - this is more interesting
+-- GJ : This only gets used on (the 1st set of) explicitly written foralls in rules. I assume we can just make these specified, or do we want to support inferred variables here as well? in that case we need to update rule_var in Parser.y
 mkRuleTyVarBndrs :: [LRuleTyTmVar] -> [LHsTyVarBndr Specificity GhcPs]
 mkRuleTyVarBndrs = fmap (fmap cvt_one)
   where cvt_one (RuleTyTmVar v Nothing)
-          = UserTyVar noExtField SSpecified (fmap tm_to_ty v) -- GJ : TODO Temporarily hardcoded
+          = UserTyVar noExtField SSpecified (fmap tm_to_ty v)
         cvt_one (RuleTyTmVar v (Just sig))
-          = KindedTyVar noExtField SSpecified (fmap tm_to_ty v) sig -- GJ : TODO Temporarily hardcoded
+          = KindedTyVar noExtField SSpecified (fmap tm_to_ty v) sig
     -- takes something in namespace 'varName' to something in namespace 'tvName'
         tm_to_ty (Unqual occ) = Unqual (setOccNameSpace tvName occ)
         tm_to_ty _ = panic "mkRuleTyVarBndrs"

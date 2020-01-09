@@ -148,7 +148,6 @@ tcRule (HsRule { rd_ext  = ext
                          , rd_rhs  = mkHsDictLet rhs_binds rhs' } }
 tcRule (XRuleDecl nec) = noExtCon nec
 
--- GJ : TODO
 generateRuleConstraints :: Maybe [LHsTyVarBndr flag GhcRn] -> [LRuleBndr GhcRn]
                         -> LHsExpr GhcRn -> LHsExpr GhcRn
                         -> TcM ( [TyVar]
