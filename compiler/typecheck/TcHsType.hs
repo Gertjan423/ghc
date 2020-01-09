@@ -1165,7 +1165,6 @@ tcInferApps_nosat mode orig_hs_ty fun orig_hs_args
         --   forall k -> blah   or   k1 -> k2
         -- So we need a normal application.  Error.
         _ -> ty_app_err hs_ki_arg $ substTy subst fun_ki
-        -- GJ IF : TODO Would this error be avoided if we use InferredFlag instead of the full ArgFlag?
 
       -- No binder; try applying the substitution, or fail if that's not possible
       (HsTypeArg _ ki_arg : _, Nothing) -> try_again_after_substing_or $

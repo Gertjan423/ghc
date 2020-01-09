@@ -61,16 +61,20 @@ module Var (
         mustHaveLocalBinding,
 
         -- * ArgFlags
-        ArgFlag(Required,Specified,Inferred), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
+        ArgFlag(Invisible,Required,Specified,Inferred),
+        isVisibleArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
         Specificity(..), argFlagToSpecificity,
 
         -- * TyVar's
         VarBndr(..), TyCoVarBinder, TyVarBinder,
+        TyCoVarSpecBinder, TyVarSpecBinder,
         binderVar, binderVars, binderArgFlag, binderType,
         mkTyCoVarBinder, mkTyCoVarBinders,
         mkTyVarBinder, mkTyVarBinders,
-        isTyVarBinder,
+        mkTyVarSpecBinder, mkTyVarSpecBinders,
+        mkTyCoVarSpecBinder, mkTyCoVarSpecBinders,
+        isTyVarBinder, tyVarSpecToBinder, tyVarSpecToBinders,
 
         -- ** Constructing TyVar's
         mkTyVar, mkTcTyVar,
@@ -425,6 +429,16 @@ instance Outputable ArgFlag where
   ppr Specified = text "[spec]"
   ppr Inferred  = text "[infrd]"
 
+instance Binary Specificity where
+  put_ bh SSpecified = putByte bh 0
+  put_ bh SInferred  = putByte bh 1
+
+  get bh = do
+    h <- getByte bh
+    case h of
+      0 -> return SSpecified
+      _ -> return SInferred
+
 instance Binary ArgFlag where
   put_ bh Required  = putByte bh 0
   put_ bh Specified = putByte bh 1
@@ -510,22 +524,6 @@ AST. In other words, AnonArgFlag is all about internals, whereas ForallVisFlag
 is all about surface syntax. Therefore, they are kept as separate data types.
 -}
 
--- -- | Inferred Flag
--- --
--- -- Denotes whether a bound type variable should be treated as inferred
--- -- ('AsInferred') and thus prohibited from appearing in source Haskell,
--- -- or as specified ('AsSpecified') and thus allowing for visible type
--- -- application.
--- -- GJ : TODO Remove
--- data InferredFlag = AsInferred | AsSpecified
---   deriving (Eq, Ord, Data)
-
--- -- | Convert an 'ArgFlag' to its corresponding 'InferredFlag'
--- argToInferredFlag :: ArgFlag -> InferredFlag
--- argToInferredFlag Required  = AsSpecified
--- argToInferredFlag Specified = AsSpecified
--- argToInferredFlag Inferred  = AsInferred
-
 {- *********************************************************************
 *                                                                      *
 *                   VarBndr, TyCoVarBinder
@@ -552,8 +550,16 @@ data VarBndr var argf = Bndr var argf
 -- home in TyCoRep, because it's used in DataCon.hs-boot
 --
 -- A 'TyVarBinder' is a binder with only TyVar
-type TyCoVarBinder = VarBndr TyCoVar ArgFlag
-type TyVarBinder   = VarBndr TyVar ArgFlag
+type TyCoVarBinder     = VarBndr TyCoVar ArgFlag
+type TyVarBinder       = VarBndr TyVar ArgFlag
+type TyCoVarSpecBinder = VarBndr TyCoVar Specificity
+type TyVarSpecBinder   = VarBndr TyVar Specificity
+
+tyVarSpecToBinders :: [VarBndr a Specificity] -> [VarBndr a ArgFlag]
+tyVarSpecToBinders = map tyVarSpecToBinder
+
+tyVarSpecToBinder :: (VarBndr a Specificity) -> (VarBndr a ArgFlag)
+tyVarSpecToBinder (Bndr tv vis) = Bndr tv (Invisible vis)
 
 binderVar :: VarBndr tv argf -> tv
 binderVar (Bndr v _) = v
@@ -586,6 +592,22 @@ mkTyCoVarBinders vis = map (mkTyCoVarBinder vis)
 -- Input vars should be type variables
 mkTyVarBinders :: ArgFlag -> [TyVar] -> [TyVarBinder]
 mkTyVarBinders vis = map (mkTyVarBinder vis)
+
+mkTyVarSpecBinder :: Specificity -> TyVar -> TyVarSpecBinder
+mkTyVarSpecBinder spec var
+  = ASSERT( isTyVar var )
+    Bndr var spec
+
+mkTyVarSpecBinders :: Specificity -> [TyVar] -> [TyVarSpecBinder]
+mkTyVarSpecBinders spec = map (mkTyVarSpecBinder spec)
+
+mkTyCoVarSpecBinder :: Specificity -> TyCoVar -> TyCoVarSpecBinder
+mkTyCoVarSpecBinder spec var
+  = ASSERT( isTyCoVar var )
+    Bndr var spec
+
+mkTyCoVarSpecBinders :: Specificity -> [TyCoVar] -> [TyCoVarSpecBinder]
+mkTyCoVarSpecBinders spec = map (mkTyCoVarSpecBinder spec)
 
 isTyVarBinder :: TyCoVarBinder -> Bool
 isTyVarBinder (Bndr v _) = isTyVar v

@@ -104,7 +104,7 @@ buildDataCon :: FamInstEnvs
            -> [FieldLabel]             -- Field labels
            -> [TyVar]                  -- Universals
            -> [TyCoVar]                -- Existentials
-           -> [TyVarBinder]            -- User-written 'TyVarBinder's
+           -> [TyVarSpecBinder]        -- User-written 'TyVarBinder's
            -> [EqSpec]                 -- Equality spec
            -> KnotTied ThetaType       -- Does not include the "stupid theta"
                                        -- or the GADT equalities
@@ -297,7 +297,7 @@ buildClass tycon_name binders roles fds
               op_names   = [op | (op,_,_) <- sig_stuff]
               arg_tys    = sc_theta ++ op_tys
               rec_tycon  = classTyCon rec_clas
-              univ_bndrs = tyConTyVarBinders binders
+              univ_bndrs = tyConTyVarSpecBinders binders
               univ_tvs   = binderVars univ_bndrs
 
         ; rep_nm   <- newTyConRepName datacon_name

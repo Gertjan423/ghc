@@ -657,7 +657,7 @@ typeToLHsType ty
                                       , hst_body = go tau })
 
     go ty@(ForAllTy (Bndr _ argf) _)
-      | (tvs, tau) <- tcSplitForAllTysSameVis argf ty -- GJ : Combine inferred and specified, but not required
+      | (tvs, tau) <- tcSplitForAllTysSameVis argf ty
       = noLoc (HsForAllTy { hst_fvf = argToForallVisFlag argf
                           , hst_bndrs = map go_tv tvs
                           , hst_xforall = noExtField

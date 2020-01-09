@@ -9,6 +9,7 @@ module ToIface
     , toIfaceIdBndr
     , toIfaceBndr
     , toIfaceForAllBndr
+    , toIfaceForAllSpecBndr
     , toIfaceTyCoVarBinders
     , toIfaceTyVar
       -- * Types
@@ -209,6 +210,12 @@ toIfaceForAllBndr = toIfaceForAllBndrX emptyVarSet
 
 toIfaceForAllBndrX :: VarSet -> TyCoVarBinder -> IfaceForAllBndr
 toIfaceForAllBndrX fr (Bndr v vis) = Bndr (toIfaceBndrX fr v) vis
+
+toIfaceForAllSpecBndr :: TyCoVarSpecBinder -> IfaceForAllSpecBndr
+toIfaceForAllSpecBndr = toIfaceForAllSpecBndrX emptyVarSet
+
+toIfaceForAllSpecBndrX :: VarSet -> TyCoVarSpecBinder -> IfaceForAllSpecBndr
+toIfaceForAllSpecBndrX fr (Bndr v vis) = Bndr (toIfaceBndrX fr v) vis
 
 ----------------
 toIfaceTyCon :: TyCon -> IfaceTyCon

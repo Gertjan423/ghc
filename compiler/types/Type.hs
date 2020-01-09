@@ -90,6 +90,8 @@ module Type (
         sameVis,
         mkTyCoVarBinder, mkTyCoVarBinders,
         mkTyVarBinders,
+        mkTyVarSpecBinders,
+        tyVarSpecToBinders,
         mkAnonBinder,
         isAnonTyCoBinder,
         binderVar, binderVars, binderType, binderArgFlag,
