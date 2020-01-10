@@ -64,6 +64,7 @@ module GHC.Hs.Types (
         hsLTyVarBndrToType, hsLTyVarBndrsToTypes,
         hsTyKindSig,
         hsConDetailsArgs,
+        hsTyVarBndrFlag,
 
         -- Printing
         pprHsType, pprHsForAll, pprHsForAllExtra, pprHsExplicitForAll,
@@ -510,6 +511,13 @@ type instance XUserTyVar    (GhcPass _) = NoExtField
 type instance XKindedTyVar  (GhcPass _) = NoExtField
 
 type instance XXTyVarBndr   (GhcPass _) = NoExtCon
+
+-- | Return the attached flag
+hsTyVarBndrFlag :: HsTyVarBndr flag (GhcPass pass) -> flag
+hsTyVarBndrFlag (UserTyVar _ fl _)     = fl
+hsTyVarBndrFlag (KindedTyVar _ fl _ _) = fl
+  -- GJ : TODO use noExtCon function instead
+hsTyVarBndrFlag (XTyVarBndr _)         = error "GJ : Not implemented"
 
 -- | Does this 'HsTyVarBndr' come with an explicit kind annotation?
 isHsKindedTyVar :: HsTyVarBndr flag pass -> Bool

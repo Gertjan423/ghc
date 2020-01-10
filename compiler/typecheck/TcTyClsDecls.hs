@@ -2711,7 +2711,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
 
        ; traceTc "tcConDecl 1" (vcat [ ppr name, ppr explicit_tkv_nms ])
 
-       ; (exp_tvs, (ctxt, arg_tys, field_lbls, stricts))
+       ; (exp_tvbndrs, (ctxt, arg_tys, field_lbls, stricts))
            <- pushTcLevelM_                             $
               solveEqualities                           $
               bindExplicitTKBndrs_Skol explicit_tkv_nms $
@@ -2727,12 +2727,14 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
                  ; return (ctxt, final_arg_tys, field_lbls, stricts)
                  }
 
+       ; let tmpl_tvs = binderVars tmpl_bndrs
+
          -- exp_tvs have explicit, user-written binding sites
          -- the kvs below are those kind variables entirely unmentioned by the user
          --   and discovered only by generalization
 
-       ; kvs <- kindGeneralizeAll (mkSpecForAllTys (binderVars tmpl_bndrs) $
-                                   mkSpecForAllTys exp_tvs $
+       ; kvs <- kindGeneralizeAll (mkSpecForAllTys tmpl_tvs $
+                                   mkForAllTys (tyVarSpecToBinders exp_tvbndrs) $
                                    mkPhiTy ctxt $
                                    mkVisFunTys arg_tys $
                                    unitTy)
@@ -2744,10 +2746,11 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
                  -- quantify over, and this type is fine for that purpose.
 
              -- Zonk to Types
-       ; (ze, qkvs)      <- zonkTyBndrs kvs
-       ; (ze, user_qtvs) <- zonkTyBndrsX ze exp_tvs
-       ; arg_tys         <- zonkTcTypesToTypesX ze arg_tys
-       ; ctxt            <- zonkTcTypesToTypesX ze ctxt
+       ; (ze, qkvs)          <- zonkTyBndrs kvs
+       ; (ze, user_qtvbndrs) <- zonkTyVarBindersX ze exp_tvbndrs
+       ; let user_qtvs       = binderVars user_qtvbndrs
+       ; arg_tys             <- zonkTcTypesToTypesX ze arg_tys
+       ; ctxt                <- zonkTcTypesToTypesX ze ctxt
 
        ; fam_envs <- tcGetFamInstEnvs
 
@@ -2757,7 +2760,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
            univ_tvbs = tyConTyVarSpecBinders tmpl_bndrs
            univ_tvs  = binderVars univ_tvbs
            ex_tvbs   = mkTyVarSpecBinders SInferred qkvs ++
-                       mkTyVarSpecBinders SSpecified user_qtvs
+                       user_qtvbndrs
            ex_tvs    = qkvs ++ user_qtvs
            -- For H98 datatypes, the user-written tyvar binders are precisely
            -- the universals followed by the existentials.
@@ -2793,7 +2796,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
     do { traceTc "tcConDecl 1 gadt" (ppr names)
        ; let (L _ name : _) = names
 
-       ; (imp_tvs, (exp_tvs, (ctxt, arg_tys, res_ty, field_lbls, stricts)))
+       ; (imp_tvs, (exp_tvbndrs, (ctxt, arg_tys, res_ty, field_lbls, stricts)))
            <- pushTcLevelM_    $  -- We are going to generalise
               solveEqualities  $  -- We won't get another crack, and we don't
                                   -- want an error cascade
@@ -2813,9 +2816,10 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
                  ; return (ctxt, final_arg_tys, res_ty, field_lbls, stricts)
                  }
        ; imp_tvs <- zonkAndScopedSort imp_tvs
-       ; let user_tvs      = imp_tvs ++ exp_tvs
+       ; let user_tvs = imp_tvs ++ (binderVars exp_tvbndrs)
 
-       ; tkvs <- kindGeneralizeAll (mkSpecForAllTys user_tvs $
+       ; tkvs <- kindGeneralizeAll (mkSpecForAllTys imp_tvs $
+                                    mkForAllTys (tyVarSpecToBinders exp_tvbndrs) $
                                     mkPhiTy ctxt $
                                     mkVisFunTys arg_tys $
                                     res_ty)
@@ -2837,7 +2841,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
              -- tyvars as univ_tvs/ex_tvs, but perhaps in a different order.
              -- See Note [DataCon user type variable binders] in DataCon.
              tkv_bndrs      = mkTyVarSpecBinders SInferred  tkvs'
-             user_tv_bndrs  = mkTyVarSpecBinders SSpecified user_tvs'
+             user_tv_bndrs  = mkTyVarSpecBinders SSpecified user_tvs' -- GJ : TODO Not all user def variables are specified
              all_user_bndrs = tkv_bndrs ++ user_tv_bndrs
 
              ctxt'      = substTys arg_subst ctxt

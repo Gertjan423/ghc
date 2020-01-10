@@ -8,6 +8,7 @@ This module converts Template Haskell syntax into Hs syntax
 
 -- GJ : TODO Atm no explicit specificity in template haskell
 -- Temporary solution is just to make all the bound variables Specified.
+-- GJ : TODO Update syntax file (Ask for feedback: flags or tuples in the MR)
 
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}

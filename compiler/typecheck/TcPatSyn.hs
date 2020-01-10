@@ -101,7 +101,7 @@ recoverPSB (PSB { psb_id = L _ name
          -- The matcher_id is used only by the desugarer, so actually
          -- and error-thunk would probably do just as well here.
          matcher_id = mkLocalId matcher_name $
-                      mkSpecForAllTys [alphaTyVar] alphaTy
+                      mkSpecForAllTys [alphaTyVar] alphaTy -- GJ : TODO check
 
 recoverPSB (XPatSynBind nec) = noExtCon nec
 
@@ -151,7 +151,7 @@ tcInferPatSynDecl (PSB { psb_id = lname@(L _ name), psb_args = details
 
              named_taus = (name, pat_ty) : map mk_named_tau args
              mk_named_tau arg
-               = (getName arg, mkSpecForAllTys ex_tvs (varType arg))
+               = (getName arg, mkSpecForAllTys ex_tvs (varType arg)) -- GJ : TODO check
                -- The mkSpecForAllTys is important (#14552), albeit
                -- slightly artificial (there is no variable with this funny type).
                -- We do not want to quantify over variable (alpha::k)
