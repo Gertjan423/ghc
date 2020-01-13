@@ -487,21 +487,6 @@ mkTyConKind bndrs res_kind = foldr mk res_kind bndrs
     mk (Bndr tv (AnonTCB af))   k = mkFunTy af (varType tv) k
     mk (Bndr tv (NamedTCB vis)) k = mkForAllTy tv vis k
 
--- GJ : TODO Replace all occurances by tyConTyVarSpecBinders
--- tyConTyVarBinders :: [TyConBinder]   -- From the TyCon
---                   -> [TyVarBinder]   -- Suitable for the foralls of a term function
--- -- See Note [Building TyVarBinders from TyConBinders]
--- tyConTyVarBinders tc_bndrs
---  = map mk_binder tc_bndrs
---  where
---    mk_binder (Bndr tv tc_vis) = mkTyVarBinder vis tv
---       where
---         vis = case tc_vis of
---                 AnonTCB VisArg    -> Specified
---                 AnonTCB InvisArg  -> Inferred   -- See Note [AnonTCB InvisArg]
---                 NamedTCB Required -> Specified
---                 NamedTCB vis      -> vis
-
 tyConTyVarSpecBinders :: [TyConBinder]       -- From the TyCon
                       -> [TyVarSpecBinder]   -- Suitable for the foralls of a term function
 -- See Note [Building TyVarBinders from TyConBinders]

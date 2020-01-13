@@ -204,7 +204,6 @@ toIfaceTyVar = occNameFS . getOccName
 toIfaceCoVar :: CoVar -> FastString
 toIfaceCoVar = occNameFS . getOccName
 
--- GJ : TODO Combine these
 toIfaceForAllBndr :: (VarBndr TyCoVar flag) -> (VarBndr IfaceBndr flag)
 toIfaceForAllBndr = toIfaceForAllBndrX emptyVarSet
 

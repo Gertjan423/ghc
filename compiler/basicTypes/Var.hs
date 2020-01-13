@@ -574,23 +574,23 @@ binderType :: VarBndr TyCoVar argf -> Type
 binderType (Bndr tv _) = varType tv
 
 -- | Make a named binder
-mkTyCoVarBinder :: ArgFlag -> TyCoVar -> TyCoVarBinder
+mkTyCoVarBinder :: vis -> TyCoVar -> (VarBndr TyCoVar vis)
 mkTyCoVarBinder vis var = Bndr var vis
 
 -- | Make a named binder
 -- 'var' should be a type variable
-mkTyVarBinder :: ArgFlag -> TyVar -> TyVarBinder
+mkTyVarBinder :: vis -> TyVar -> (VarBndr TyVar vis)
 mkTyVarBinder vis var
   = ASSERT( isTyVar var )
     Bndr var vis
 
 -- | Make many named binders
-mkTyCoVarBinders :: ArgFlag -> [TyCoVar] -> [TyCoVarBinder]
+mkTyCoVarBinders :: vis -> [TyCoVar] -> [VarBndr TyCoVar vis]
 mkTyCoVarBinders vis = map (mkTyCoVarBinder vis)
 
 -- | Make many named binders
 -- Input vars should be type variables
-mkTyVarBinders :: ArgFlag -> [TyVar] -> [TyVarBinder]
+mkTyVarBinders :: vis -> [TyVar] -> [VarBndr TyVar vis]
 mkTyVarBinders vis = map (mkTyVarBinder vis)
 
 mkTyVarSpecBinder :: Specificity -> TyVar -> TyVarSpecBinder

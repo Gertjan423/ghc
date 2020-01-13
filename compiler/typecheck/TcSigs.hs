@@ -450,7 +450,7 @@ tcPatSynSig name sig_ty
               , text "body_ty" <+> ppr body_ty' ]
        ; return (TPSI { patsig_name = name
                       , patsig_implicit_bndrs = mkTyVarSpecBinders SInferred  kvs ++
-                                                mkTyVarSpecBinders SSpecified implicit_tvs' -- GJ : TODO Not sure about this
+                                                mkTyVarSpecBinders SSpecified implicit_tvs' -- GJ : TODO Do we have more specific information somewhere?
                       , patsig_univ_bndrs     = univ_tvs'
                       , patsig_req            = req'
                       , patsig_ex_bndrs       = ex_tvs'
@@ -461,9 +461,9 @@ tcPatSynSig name sig_ty
 
     build_patsyn_type kvs imp univ req ex prov body
       = mkInvForAllTys kvs $
-        mkSpecForAllTys (imp ++ univ) $ -- GJ : TODO We can be more specific here
+        mkSpecForAllTys (imp ++ univ) $ -- GJ : TODO Do we have more specific information somewhere?
         mkPhiTy req $
-        mkSpecForAllTys ex $ -- GJ : TODO same
+        mkSpecForAllTys ex $
         mkPhiTy prov $
         body
 tcPatSynSig _ (XHsImplicitBndrs nec) = noExtCon nec

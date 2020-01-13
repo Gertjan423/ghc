@@ -730,8 +730,7 @@ tc_hs_type mode forall@(HsForAllTy { hst_fvf = fvf, hst_bndrs = hs_tvs
     construct_bndr (Bndr tv spec) = do { argf <- spec_to_argf spec
                                        ; return $ mkTyVarBinder argf tv }
 
-  -- GJ : TODO local functions are written with underscores
-  -- GJ : TODO little table in comments
+    -- See Note [Variable Specificity and Forall Visibility]
     spec_to_argf :: Specificity -> TcM ArgFlag
     spec_to_argf SSpecified = case fvf of
       ForallVis   -> return Required
@@ -870,6 +869,29 @@ tc_hs_type mode ty@(HsOpTy {})             ek = tc_infer_hs_type_ek mode ty ek
 tc_hs_type mode ty@(HsKindSig {})          ek = tc_infer_hs_type_ek mode ty ek
 tc_hs_type mode ty@(XHsType (NHsCoreTy{})) ek = tc_infer_hs_type_ek mode ty ek
 tc_hs_type _    wc@(HsWildCardTy _)        ek = tcAnonWildCardOcc wc ek
+
+{-
+Note [Variable Specificity and Forall Visibility]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A HsForAllTy contains a ForAllVisFlag to denote the visibility of the forall
+binder. Furthermore, each bound variable also has a Specificity. Together these
+determine the variable binders (ArgFlag) for each variable in the generated
+ForAllTy type.
+
+This table summarises this relation:
+-----------------------------------------------------------------------
+| User-written type         ForAllVisFlag     Specificity     ArgFlag
+|----------------------------------------------------------------------
+| f :: forall a. type       ForallInvis       SSpecified      Specified
+| f :: forall {a}. type     ForallInvis       SInferred       Inferred
+| f :: forall a -> type     ForallVis         SSpecified      Required
+| f :: forall {a} -> type   ForallVis         SInferred       /
+|   This last form is non-sensical and is thus rejected.
+-----------------------------------------------------------------------
+
+For more information regarding the interpretation of the resulting ArgFlag, see
+Note [VarBndrs, TyCoVarBinders, TyConBinders, and visibility] in TyCoRep.
+-}
 
 ------------------------------------------
 tc_fun_type :: TcTyMode -> LHsType GhcRn -> LHsType GhcRn -> TcKind
@@ -2258,7 +2280,7 @@ kcCheckDeclHeader_sig kisig name flav ktvs kc_res_ki =
 
 -- A quantifier from a kind signature zipped with a user-written binder for it.
 data ZippedBinder =
-  ZippedBinder TyBinder (Maybe (LHsTyVarBndr () GhcRn)) -- GJ : Only used for declarations, which do not feature expl specificity flags
+  ZippedBinder TyBinder (Maybe (LHsTyVarBndr () GhcRn)) -- GJ Note : Only used for declarations, which do not feature expl specificity flags
 
 -- See Note [Arity inference in kcCheckDeclHeader_sig]
 zipBinders

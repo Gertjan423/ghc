@@ -516,8 +516,7 @@ type instance XXTyVarBndr   (GhcPass _) = NoExtCon
 hsTyVarBndrFlag :: HsTyVarBndr flag (GhcPass pass) -> flag
 hsTyVarBndrFlag (UserTyVar _ fl _)     = fl
 hsTyVarBndrFlag (KindedTyVar _ fl _ _) = fl
-  -- GJ : TODO use noExtCon function instead
-hsTyVarBndrFlag (XTyVarBndr _)         = error "GJ : Not implemented"
+hsTyVarBndrFlag (XTyVarBndr nec)       = noExtCon nec
 
 -- | Does this 'HsTyVarBndr' come with an explicit kind annotation?
 isHsKindedTyVar :: HsTyVarBndr flag pass -> Bool

@@ -1552,7 +1552,7 @@ splitForAllTys ty = split ty ty []
 -- @'sameVis' argf supplied_argf@ is 'True', where @argf@ is the visibility
 -- of the @ForAllTy@'s binder and @supplied_argf@ is the visibility provided
 -- as an argument to this function.
--- GJ : TODO Update the documentation, to reflect the returned ArgFlags
+-- Furthermore, each returned tyvar is annotated with its argf.
 splitForAllTysSameVis :: ArgFlag -> Type -> ([(TyCoVar,ArgFlag)], Type)
 splitForAllTysSameVis supplied_argf ty = split ty ty []
   where

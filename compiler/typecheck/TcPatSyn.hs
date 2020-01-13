@@ -101,7 +101,7 @@ recoverPSB (PSB { psb_id = L _ name
          -- The matcher_id is used only by the desugarer, so actually
          -- and error-thunk would probably do just as well here.
          matcher_id = mkLocalId matcher_name $
-                      mkSpecForAllTys [alphaTyVar] alphaTy -- GJ : TODO check
+                      mkSpecForAllTys [alphaTyVar] alphaTy
 
 recoverPSB (XPatSynBind nec) = noExtCon nec
 
@@ -151,7 +151,7 @@ tcInferPatSynDecl (PSB { psb_id = lname@(L _ name), psb_args = details
 
              named_taus = (name, pat_ty) : map mk_named_tau args
              mk_named_tau arg
-               = (getName arg, mkSpecForAllTys ex_tvs (varType arg)) -- GJ : TODO check
+               = (getName arg, mkSpecForAllTys ex_tvs (varType arg))
                -- The mkSpecForAllTys is important (#14552), albeit
                -- slightly artificial (there is no variable with this funny type).
                -- We do not want to quantify over variable (alpha::k)
@@ -182,7 +182,7 @@ tcInferPatSynDecl (PSB { psb_id = lname@(L _ name), psb_args = details
 
        ; traceTc "tcInferPatSynDecl }" $ (ppr name $$ ppr ex_tvs)
        ; tc_patsyn_finish lname dir is_infix lpat'
-                          (mkTyVarSpecBinders SInferred univ_tvs -- GJ : TODO We can make this more specific?
+                          (mkTyVarSpecBinders SInferred univ_tvs -- GJ : TODO Do we have more specific information somewhere?
                             , req_theta,  ev_binds, req_dicts)
                           (mkTyVarSpecBinders SInferred ex_tvs
                             , mkTyVarTys ex_tvs, prov_theta, prov_evs)
@@ -373,7 +373,7 @@ tcCheckPatSynDecl psb@PSB{ psb_id = lname@(L _ name), psb_args = details
        ; let univ_fvs = closeOverKinds $
                         (tyCoVarsOfTypes (pat_ty : req_theta) `extendVarSetList` explicit_univ_tvs)
              (extra_univ, extra_ex) = partition ((`elemVarSet` univ_fvs) . binderVar) implicit_tvs
-             univ_bndrs = extra_univ ++ mkTyVarSpecBinders SSpecified explicit_univ_tvs -- GJ : TODO We can make this more specific?
+             univ_bndrs = extra_univ ++ mkTyVarSpecBinders SSpecified explicit_univ_tvs -- GJ : TODO Do we have more specific information somewhere?
              ex_bndrs   = extra_ex   ++ mkTyVarSpecBinders SSpecified explicit_ex_tvs
              univ_tvs   = binderVars univ_bndrs
              ex_tvs     = binderVars ex_bndrs

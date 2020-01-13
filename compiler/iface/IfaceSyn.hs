@@ -163,7 +163,7 @@ data IfaceDecl
                   ifPatBuilder    :: Maybe (IfExtName, Bool),
                   -- Everything below is redundant,
                   -- but needed to implement pprIfaceDecl
-                  ifPatUnivBndrs  :: [IfaceForAllSpecBndr], -- GJ : TODO Update this to a SpecBndr as well
+                  ifPatUnivBndrs  :: [IfaceForAllSpecBndr],
                   ifPatExBndrs    :: [IfaceForAllSpecBndr],
                   ifPatProvCtxt   :: IfaceContext,
                   ifPatReqCtxt    :: IfaceContext,

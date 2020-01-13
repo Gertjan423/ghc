@@ -893,7 +893,6 @@ mkDataCon :: Name
           -> [TyVar]        -- ^ Universals.
           -> [TyCoVar]      -- ^ Existentials.
           -> [TyVarSpecBinder]  -- ^ User-written 'TyVarBinder's.
-                                -- GJ : Remove this comment
                                 --   These must be Inferred/Specified.
                                 --   See @Note [TyVarBinders in DataCons]@
           -> [EqSpec]           -- ^ GADT equalities
@@ -1058,7 +1057,6 @@ dataConUserTyVars (MkData { dcUserTyVarBinders = tvbs }) = binderVars tvbs
 -- See Note [DataCon user type variable binders]
 -- | 'TyCoVarBinder's for the type variables of the constructor, in the order the
 -- user wrote them
--- GJ : TODO Possible to replace all occurances of this with the Spec variant?
 dataConUserTyVarBinders :: DataCon -> [TyVarBinder]
 dataConUserTyVarBinders = tyVarSpecToBinders . dcUserTyVarBinders
 
