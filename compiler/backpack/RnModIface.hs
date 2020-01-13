@@ -551,7 +551,7 @@ rnIfaceConDecl :: Rename IfaceConDecl
 rnIfaceConDecl d = do
     con_name <- rnIfaceGlobal (ifConName d)
     con_ex_tvs <- mapM rnIfaceBndr (ifConExTCvs d)
-    con_user_tvbs <- mapM rnIfaceForAllSpecBndr (ifConUserTvBinders d)
+    con_user_tvbs <- mapM rnIfaceForAllBndr (ifConUserTvBinders d)
     let rnIfConEqSpec (n,t) = (,) n <$> rnIfaceType t
     con_eq_spec <- mapM rnIfConEqSpec (ifConEqSpec d)
     con_ctxt <- mapM rnIfaceType (ifConCtxt d)
@@ -734,11 +734,8 @@ rnIfaceType (IfaceCoercionTy co)
 rnIfaceType (IfaceCastTy ty co)
     = IfaceCastTy <$> rnIfaceType ty <*> rnIfaceCo co
 
-rnIfaceForAllBndr :: Rename IfaceForAllBndr
+rnIfaceForAllBndr :: Rename (VarBndr IfaceBndr flag)
 rnIfaceForAllBndr (Bndr tv vis) = Bndr <$> rnIfaceBndr tv <*> pure vis
-
-rnIfaceForAllSpecBndr :: Rename IfaceForAllSpecBndr
-rnIfaceForAllSpecBndr (Bndr tv vis) = Bndr <$> rnIfaceBndr tv <*> pure vis
 
 rnIfaceAppArgs :: Rename IfaceAppArgs
 rnIfaceAppArgs (IA_Arg t a ts) = IA_Arg <$> rnIfaceType t <*> pure a

@@ -65,7 +65,7 @@ import SrcLoc
 import Fingerprint
 import Binary
 import BooleanFormula ( BooleanFormula, pprBooleanFormula, isTrue )
-import Var( VarBndr(..), binderVar )
+import Var( VarBndr(..), binderVar, tyVarSpecToBinders )
 import TyCon ( Role (..), Injectivity(..), tyConBndrVisArgFlag )
 import Util( dropList, filterByList, notNull, unzipWith, debugIsOn )
 import DataCon (SrcStrictness(..), SrcUnpackedness(..))
@@ -163,8 +163,8 @@ data IfaceDecl
                   ifPatBuilder    :: Maybe (IfExtName, Bool),
                   -- Everything below is redundant,
                   -- but needed to implement pprIfaceDecl
-                  ifPatUnivBndrs  :: [IfaceForAllBndr], -- GJ : TODO Update this to a SpecBndr as well
-                  ifPatExBndrs    :: [IfaceForAllBndr],
+                  ifPatUnivBndrs  :: [IfaceForAllSpecBndr], -- GJ : TODO Update this to a SpecBndr as well
+                  ifPatExBndrs    :: [IfaceForAllSpecBndr],
                   ifPatProvCtxt   :: IfaceContext,
                   ifPatReqCtxt    :: IfaceContext,
                   ifPatArgs       :: [IfaceType],
@@ -970,8 +970,8 @@ pprIfaceDecl _ (IfacePatSyn { ifName = name,
                              , pprIfaceContextArr prov_ctxt
                              , pprIfaceType $ foldr (IfaceFunTy VisArg) pat_ty arg_tys ])
       where
-        univ_msg = pprUserIfaceForAll univ_bndrs
-        ex_msg   = pprUserIfaceForAll ex_bndrs
+        univ_msg = pprUserIfaceForAll $ tyVarSpecToBinders univ_bndrs
+        ex_msg   = pprUserIfaceForAll $ tyVarSpecToBinders ex_bndrs
 
         insert_empty_ctxt = null req_ctxt
             && not (null prov_ctxt && isEmpty dflags ex_msg)

@@ -2976,6 +2976,7 @@ errors reported in one pass.  See #7175, and #10836.
 --      TI :: forall b1 c1. (b1 ~ c1) => b1 -> :R7T b1 c1
 -- In this case orig_res_ty = T (e,e)
 
+-- GJ : TODO Not really an issue, just update the TyVars to become binders
 rejigConRes :: [KnotTied TyConBinder] -> KnotTied Type    -- Template for result type; e.g.
                                   -- data instance T [a] b c ...
                                   --      gives template ([a,b,c], T [a] b c)

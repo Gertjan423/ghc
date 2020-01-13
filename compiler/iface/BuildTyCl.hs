@@ -169,8 +169,8 @@ mkDataConStupidTheta tycon arg_tys univ_tvs
 ------------------------------------------------------
 buildPatSyn :: Name -> Bool
             -> (Id,Bool) -> Maybe (Id, Bool)
-            -> ([TyVarBinder], ThetaType) -- ^ Univ and req
-            -> ([TyVarBinder], ThetaType) -- ^ Ex and prov
+            -> ([TyVarSpecBinder], ThetaType) -- ^ Univ and req
+            -> ([TyVarSpecBinder], ThetaType) -- ^ Ex and prov
             -> [Type]               -- ^ Argument types
             -> Type                 -- ^ Result type
             -> [FieldLabel]         -- ^ Field labels for

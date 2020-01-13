@@ -9,7 +9,6 @@ module ToIface
     , toIfaceIdBndr
     , toIfaceBndr
     , toIfaceForAllBndr
-    , toIfaceForAllSpecBndr
     , toIfaceTyCoVarBinders
     , toIfaceTyVar
       -- * Types
@@ -205,17 +204,12 @@ toIfaceTyVar = occNameFS . getOccName
 toIfaceCoVar :: CoVar -> FastString
 toIfaceCoVar = occNameFS . getOccName
 
-toIfaceForAllBndr :: TyCoVarBinder -> IfaceForAllBndr
+-- GJ : TODO Combine these
+toIfaceForAllBndr :: (VarBndr TyCoVar flag) -> (VarBndr IfaceBndr flag)
 toIfaceForAllBndr = toIfaceForAllBndrX emptyVarSet
 
-toIfaceForAllBndrX :: VarSet -> TyCoVarBinder -> IfaceForAllBndr
+toIfaceForAllBndrX :: VarSet -> (VarBndr TyCoVar flag) -> (VarBndr IfaceBndr flag)
 toIfaceForAllBndrX fr (Bndr v vis) = Bndr (toIfaceBndrX fr v) vis
-
-toIfaceForAllSpecBndr :: TyCoVarSpecBinder -> IfaceForAllSpecBndr
-toIfaceForAllSpecBndr = toIfaceForAllSpecBndrX emptyVarSet
-
-toIfaceForAllSpecBndrX :: VarSet -> TyCoVarSpecBinder -> IfaceForAllSpecBndr
-toIfaceForAllSpecBndrX fr (Bndr v vis) = Bndr (toIfaceBndrX fr v) vis
 
 ----------------
 toIfaceTyCon :: TyCon -> IfaceTyCon

@@ -478,7 +478,6 @@ data DataCon
 {- Note [TyVarBinders in DataCons]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For the TyVarBinders in a DataCon and PatSyn:
--- GJ : TODO Also update this in PatSyn
 
  * Each argument flag is Inferred or Specified.
    None are Required. (A DataCon is a term-level function; see

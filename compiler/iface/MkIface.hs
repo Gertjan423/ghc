@@ -1893,7 +1893,7 @@ tyConToIfaceDecl env tycon
                     ifConInfix   = dataConIsInfix data_con,
                     ifConWrapper = isJust (dataConWrapId_maybe data_con),
                     ifConExTCvs  = map toIfaceBndr ex_tvs',
-                    ifConUserTvBinders = map toIfaceForAllSpecBndr user_bndrs',
+                    ifConUserTvBinders = map toIfaceForAllBndr user_bndrs',
                     ifConEqSpec  = map (to_eq_spec . eqSpecPair) eq_spec,
                     ifConCtxt    = tidyToIfaceContext con_env2 theta,
                     ifConArgTys  = map (tidyToIfaceType con_env2) arg_tys,

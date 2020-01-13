@@ -617,6 +617,9 @@ instance Outputable tv => Outputable (VarBndr tv ArgFlag) where
   ppr (Bndr v Specified) = char '@' <> ppr v
   ppr (Bndr v Inferred)  = braces (ppr v)
 
+instance Outputable tv => Outputable (VarBndr tv Specificity) where
+  ppr = ppr . tyVarSpecToBinder
+
 instance (Binary tv, Binary vis) => Binary (VarBndr tv vis) where
   put_ bh (Bndr tv vis) = do { put_ bh tv; put_ bh vis }
 
