@@ -41,7 +41,7 @@ import TcEnv( tcLookupId )
 import TcEvidence( HsWrapper, (<.>) )
 
 import DynFlags
-import Var      ( TyVar, Specificity(..), tyVarKind, binderVars, mkTyVarSpecBinders )
+import Var      ( TyVar, Specificity(..), tyVarKind, binderVars, mkTyVarBinders )
 import Id       ( Id, idName, idType, idInlinePragma, setInlinePragma, mkLocalId )
 import PrelNames( mkUnboundName )
 import BasicTypes
@@ -449,8 +449,8 @@ tcPatSynSig name sig_ty
               , text "prov" <+> ppr prov'
               , text "body_ty" <+> ppr body_ty' ]
        ; return (TPSI { patsig_name = name
-                      , patsig_implicit_bndrs = mkTyVarSpecBinders SInferred  kvs ++
-                                                mkTyVarSpecBinders SSpecified implicit_tvs' -- GJ : TODO Do we have more specific information somewhere?
+                      , patsig_implicit_bndrs = mkTyVarBinders SInferred  kvs ++
+                                                mkTyVarBinders SSpecified implicit_tvs' -- GJ : TODO Do we have more specific information somewhere?
                       , patsig_univ_bndrs     = univ_tvs'
                       , patsig_req            = req'
                       , patsig_ex_bndrs       = ex_tvs'

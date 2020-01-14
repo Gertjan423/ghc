@@ -72,8 +72,6 @@ module Var (
         binderVar, binderVars, binderArgFlag, binderType,
         mkTyCoVarBinder, mkTyCoVarBinders,
         mkTyVarBinder, mkTyVarBinders,
-        mkTyVarSpecBinder, mkTyVarSpecBinders,
-        mkTyCoVarSpecBinder, mkTyCoVarSpecBinders,
         isTyVarBinder, tyVarSpecToBinder, tyVarSpecToBinders,
         splitTyVarsOnSpecificity,
 
@@ -593,23 +591,6 @@ mkTyCoVarBinders vis = map (mkTyCoVarBinder vis)
 -- Input vars should be type variables
 mkTyVarBinders :: vis -> [TyVar] -> [VarBndr TyVar vis]
 mkTyVarBinders vis = map (mkTyVarBinder vis)
-
-  -- GJ : TODO These can be dropped
-mkTyVarSpecBinder :: Specificity -> TyVar -> TyVarSpecBinder
-mkTyVarSpecBinder spec var
-  = ASSERT( isTyVar var )
-    Bndr var spec
-
-mkTyVarSpecBinders :: Specificity -> [TyVar] -> [TyVarSpecBinder]
-mkTyVarSpecBinders spec = map (mkTyVarSpecBinder spec)
-
-mkTyCoVarSpecBinder :: Specificity -> TyCoVar -> TyCoVarSpecBinder
-mkTyCoVarSpecBinder spec var
-  = ASSERT( isTyCoVar var )
-    Bndr var spec
-
-mkTyCoVarSpecBinders :: Specificity -> [TyCoVar] -> [TyCoVarSpecBinder]
-mkTyCoVarSpecBinders spec = map (mkTyCoVarSpecBinder spec)
 
 isTyVarBinder :: TyCoVarBinder -> Bool
 isTyVarBinder (Bndr v _) = isTyVar v

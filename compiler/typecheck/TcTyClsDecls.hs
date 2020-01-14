@@ -2759,7 +2759,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
        ; let
            univ_tvbs = tyConTyVarSpecBinders tmpl_bndrs
            univ_tvs  = binderVars univ_tvbs
-           ex_tvbs   = mkTyVarSpecBinders SInferred qkvs ++
+           ex_tvbs   = mkTyVarBinders SInferred qkvs ++
                        user_qtvbndrs
            ex_tvs    = qkvs ++ user_qtvs
            -- For H98 datatypes, the user-written tyvar binders are precisely
@@ -2842,8 +2842,8 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
              -- Compute the user-written tyvar binders. These have the same
              -- tyvars as univ_tvs/ex_tvs, but perhaps in a different order.
              -- See Note [DataCon user type variable binders] in DataCon.
-             tkv_bndrs      = mkTyVarSpecBinders SInferred  tkvs'
-             user_tv_bndrs  = mkTyVarSpecBinders SSpecified user_tvs'
+             tkv_bndrs      = mkTyVarBinders SInferred  tkvs'
+             user_tv_bndrs  = mkTyVarBinders SSpecified user_tvs'
              all_user_bndrs = tkv_bndrs ++ user_tv_bndrs
 
              ctxt'      = substTys arg_subst ctxt

@@ -493,7 +493,7 @@ tyConTyVarSpecBinders :: [TyConBinder]       -- From the TyCon
 tyConTyVarSpecBinders tc_bndrs
  = map mk_binder tc_bndrs
  where
-   mk_binder (Bndr tv tc_vis) = mkTyVarSpecBinder vis tv
+   mk_binder (Bndr tv tc_vis) = mkTyVarBinder vis tv
       where
         vis = case tc_vis of
                 AnonTCB VisArg           -> SSpecified

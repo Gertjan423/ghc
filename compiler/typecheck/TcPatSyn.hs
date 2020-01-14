@@ -92,7 +92,7 @@ recoverPSB (PSB { psb_id = L _ name
     (_arg_names, _rec_fields, is_infix) = collectPatSynArgInfo details
     mk_placeholder matcher_name
       = mkPatSyn name is_infix
-                        ([mkTyVarSpecBinder SSpecified alphaTyVar], []) ([], [])
+                        ([mkTyVarBinder SSpecified alphaTyVar], []) ([], [])
                         [] -- Arg tys
                         alphaTy
                         (matcher_id, True) Nothing
@@ -182,9 +182,9 @@ tcInferPatSynDecl (PSB { psb_id = lname@(L _ name), psb_args = details
 
        ; traceTc "tcInferPatSynDecl }" $ (ppr name $$ ppr ex_tvs)
        ; tc_patsyn_finish lname dir is_infix lpat'
-                          (mkTyVarSpecBinders SInferred univ_tvs -- GJ : TODO Do we have more specific information somewhere?
+                          (mkTyVarBinders SInferred univ_tvs -- GJ : TODO Do we have more specific information somewhere?
                             , req_theta,  ev_binds, req_dicts)
-                          (mkTyVarSpecBinders SInferred ex_tvs
+                          (mkTyVarBinders SInferred ex_tvs
                             , mkTyVarTys ex_tvs, prov_theta, prov_evs)
                           (map nlHsVar args, map idType args)
                           pat_ty rec_fields } }
@@ -373,8 +373,8 @@ tcCheckPatSynDecl psb@PSB{ psb_id = lname@(L _ name), psb_args = details
        ; let univ_fvs = closeOverKinds $
                         (tyCoVarsOfTypes (pat_ty : req_theta) `extendVarSetList` explicit_univ_tvs)
              (extra_univ, extra_ex) = partition ((`elemVarSet` univ_fvs) . binderVar) implicit_tvs
-             univ_bndrs = extra_univ ++ mkTyVarSpecBinders SSpecified explicit_univ_tvs -- GJ : TODO Do we have more specific information somewhere?
-             ex_bndrs   = extra_ex   ++ mkTyVarSpecBinders SSpecified explicit_ex_tvs
+             univ_bndrs = extra_univ ++ mkTyVarBinders SSpecified explicit_univ_tvs -- GJ : TODO Do we have more specific information somewhere?
+             ex_bndrs   = extra_ex   ++ mkTyVarBinders SSpecified explicit_ex_tvs
              univ_tvs   = binderVars univ_bndrs
              ex_tvs     = binderVars ex_bndrs
 
