@@ -73,7 +73,7 @@ module Var (
         mkTyCoVarBinder, mkTyCoVarBinders,
         mkTyVarBinder, mkTyVarBinders,
         isTyVarBinder, tyVarSpecToBinder, tyVarSpecToBinders,
-        splitTyVarsOnSpecificity,
+        splitTyVarsOnSpecificity, mapVarBndr, mapVarBndrs,
 
         -- ** Constructing TyVar's
         mkTyVar, mkTcTyVar,
@@ -594,6 +594,12 @@ mkTyVarBinders vis = map (mkTyVarBinder vis)
 
 isTyVarBinder :: TyCoVarBinder -> Bool
 isTyVarBinder (Bndr v _) = isTyVar v
+
+mapVarBndr :: (var -> var') -> (VarBndr var flag) -> (VarBndr var' flag)
+mapVarBndr f (Bndr v fl) = Bndr (f v) fl
+
+mapVarBndrs :: (var -> var') -> [VarBndr var flag] -> [VarBndr var' flag]
+mapVarBndrs f = map (mapVarBndr f)
 
 -- | Split a list of annotated tyvars, based on their specificity.
 -- Returns the inferred and specified tyvars separately (in this order).

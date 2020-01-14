@@ -2816,7 +2816,6 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
                  ; return (ctxt, final_arg_tys, res_ty, field_lbls, stricts)
                  }
        ; imp_tvs <- zonkAndScopedSort imp_tvs
-       ; let user_tvbndrs = (mkTyVarBinders SInferred imp_tvs) ++ exp_tvbndrs
 
        ; tkvs <- kindGeneralizeAll (mkSpecForAllTys imp_tvs $
                                     mkForAllTys (tyVarSpecToBinders exp_tvbndrs) $
@@ -2824,27 +2823,21 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
                                     mkVisFunTys arg_tys $
                                     res_ty)
 
+       ; let tvbndrs =  (mkTyVarBinders SInferred tkvs)
+                     ++ (mkTyVarBinders SInferred imp_tvs)
+                     ++ exp_tvbndrs
+
              -- Zonk to Types
-       ; (ze, tkvs)     <- zonkTyBndrs tkvs
-       ; (ze, user_tvbndrs) <- zonkTyVarBindersX ze user_tvbndrs
-       ; arg_tys <- zonkTcTypesToTypesX ze arg_tys
-       ; ctxt    <- zonkTcTypesToTypesX ze ctxt
-       ; res_ty  <- zonkTcTypeToTypeX   ze res_ty
+       ; (ze, tvbndrs) <- zonkTyVarBinders       tvbndrs
+       ; arg_tys       <- zonkTcTypesToTypesX ze arg_tys
+       ; ctxt          <- zonkTcTypesToTypesX ze ctxt
+       ; res_ty        <- zonkTcTypeToTypeX   ze res_ty
 
-       ; let (inf_user_tvs , spec_user_tvs) = splitTyVarsOnSpecificity user_tvbndrs
-
-       ; let (univ_tvs, ex_tvs, tkvs', user_tvs', eq_preds, arg_subst)
-               = rejigConRes tmpl_bndrs res_tmpl (tkvs ++ inf_user_tvs) spec_user_tvs res_ty -- GJ : TODO This might be wrong. I think this might mess up the variable order.
+       ; let (univ_tvs, ex_tvs, tvbndrs', eq_preds, arg_subst)
+               = rejigConRes tmpl_bndrs res_tmpl tvbndrs res_ty
              -- NB: this is a /lazy/ binding, so we pass six thunks to
              --     buildDataCon without yet forcing the guards in rejigConRes
              -- See Note [Checking GADT return types]
-
-             -- Compute the user-written tyvar binders. These have the same
-             -- tyvars as univ_tvs/ex_tvs, but perhaps in a different order.
-             -- See Note [DataCon user type variable binders] in DataCon.
-             tkv_bndrs      = mkTyVarBinders SInferred  tkvs'
-             user_tv_bndrs  = mkTyVarBinders SSpecified user_tvs'
-             all_user_bndrs = tkv_bndrs ++ user_tv_bndrs
 
              ctxt'      = substTys arg_subst ctxt
              arg_tys'   = substTys arg_subst arg_tys
@@ -2863,7 +2856,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
              ; buildDataCon fam_envs name is_infix
                             rep_nm
                             stricts Nothing field_lbls
-                            univ_tvs ex_tvs all_user_bndrs eq_preds
+                            univ_tvs ex_tvs tvbndrs' eq_preds
                             ctxt' arg_tys' res_ty' rep_tycon tag_map
                   -- NB:  we put data_tc, the type constructor gotten from the
                   --      constructor type signature into the data constructor;
@@ -2981,22 +2974,18 @@ errors reported in one pass.  See #7175, and #10836.
 rejigConRes :: [KnotTied TyConBinder] -> KnotTied Type    -- Template for result type; e.g.
                                   -- data instance T [a] b c ...
                                   --      gives template ([a,b,c], T [a] b c)
-            -> [TyVar]            -- The constructor's inferred type variables
-            -> [TyVar]            -- The constructor's user-written, specified
-                                  -- type variables
+            -> [TyVarSpecBinder]  -- The constructor's type variables (both inferred and user-written)
             -> KnotTied Type      -- res_ty
             -> ([TyVar],          -- Universal
                 [TyVar],          -- Existential (distinct OccNames from univs)
-                [TyVar],          -- The constructor's rejigged, user-written,
-                                  -- inferred type variables
-                [TyVar],          -- The constructor's rejigged, user-written,
-                                  -- specified type variables
+                [TyVarSpecBinder], -- The constructor's rejigged, user-written
+                                   -- type variables
                 [EqSpec],      -- Equality predicates
                 TCvSubst)      -- Substitution to apply to argument types
         -- We don't check that the TyCon given in the ResTy is
         -- the same as the parent tycon, because checkValidDataCon will do it
 -- NB: All arguments may potentially be knot-tied
-rejigConRes tmpl_bndrs res_tmpl dc_inferred_tvs dc_specified_tvs res_ty
+rejigConRes tmpl_bndrs res_tmpl dc_tvbndrs res_ty
         -- E.g.  data T [a] b c where
         --         MkT :: forall x y z. T [(x,y)] z z
         -- The {a,b,c} are the tmpl_tvs, and the {x,y,z} are the dc_tvs
@@ -3023,14 +3012,12 @@ rejigConRes tmpl_bndrs res_tmpl dc_inferred_tvs dc_specified_tvs res_ty
         -- since the dcUserTyVarBinders invariant guarantees that the
         -- substitution has *all* the tyvars in its domain.
         -- See Note [DataCon user type variable binders] in DataCon.
-        subst_user_tvs = map (getTyVar "rejigConRes" . substTyVar arg_subst)
-        substed_inferred_tvs  = subst_user_tvs dc_inferred_tvs
-        substed_specified_tvs = subst_user_tvs dc_specified_tvs
+        subst_user_tvs  = mapVarBndrs (getTyVar "rejigConRes" . substTyVar arg_subst)
+        substed_tvbndrs = subst_user_tvs dc_tvbndrs
 
         substed_eqs = map (substEqSpec arg_subst) raw_eqs
     in
-    (univ_tvs, substed_ex_tvs, substed_inferred_tvs, substed_specified_tvs,
-     substed_eqs, arg_subst)
+    (univ_tvs, substed_ex_tvs, substed_tvbndrs, substed_eqs, arg_subst)
 
   | otherwise
         -- If the return type of the data constructor doesn't match the parent
@@ -3043,10 +3030,9 @@ rejigConRes tmpl_bndrs res_tmpl dc_inferred_tvs dc_specified_tvs res_ty
         -- albeit bogus, relying on checkValidDataCon to check the
         --  bad-result-type error before seeing that the other fields look odd
         -- See Note [Checking GADT return types]
-  = (tmpl_tvs, dc_tvs `minusList` tmpl_tvs, dc_inferred_tvs, dc_specified_tvs,
-     [], emptyTCvSubst)
+  = (tmpl_tvs, dc_tvs `minusList` tmpl_tvs, dc_tvbndrs, [], emptyTCvSubst)
   where
-    dc_tvs   = dc_inferred_tvs ++ dc_specified_tvs
+    dc_tvs   = binderVars dc_tvbndrs
     tmpl_tvs = binderVars tmpl_bndrs
 
 {- Note [mkGADTVars]
