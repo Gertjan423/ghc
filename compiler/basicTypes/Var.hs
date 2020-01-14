@@ -75,6 +75,7 @@ module Var (
         mkTyVarSpecBinder, mkTyVarSpecBinders,
         mkTyCoVarSpecBinder, mkTyCoVarSpecBinders,
         isTyVarBinder, tyVarSpecToBinder, tyVarSpecToBinders,
+        splitTyVarsOnSpecificity,
 
         -- ** Constructing TyVar's
         mkTyVar, mkTcTyVar,
@@ -593,6 +594,7 @@ mkTyCoVarBinders vis = map (mkTyCoVarBinder vis)
 mkTyVarBinders :: vis -> [TyVar] -> [VarBndr TyVar vis]
 mkTyVarBinders vis = map (mkTyVarBinder vis)
 
+  -- GJ : TODO These can be dropped
 mkTyVarSpecBinder :: Specificity -> TyVar -> TyVarSpecBinder
 mkTyVarSpecBinder spec var
   = ASSERT( isTyVar var )
@@ -611,6 +613,17 @@ mkTyCoVarSpecBinders spec = map (mkTyCoVarSpecBinder spec)
 
 isTyVarBinder :: TyCoVarBinder -> Bool
 isTyVarBinder (Bndr v _) = isTyVar v
+
+-- | Split a list of annotated tyvars, based on their specificity.
+-- Returns the inferred and specified tyvars separately (in this order).
+splitTyVarsOnSpecificity :: [TyVarSpecBinder] -> ([TyVar] , [TyVar])
+splitTyVarsOnSpecificity tvs = ( binderVars $ filter is_inferred tvs
+                               , binderVars $ filter is_specified tvs )
+  where
+    is_inferred :: TyVarSpecBinder -> Bool
+    is_inferred = (==) SInferred . binderArgFlag
+    is_specified :: TyVarSpecBinder -> Bool
+    is_specified = not . is_inferred
 
 instance Outputable tv => Outputable (VarBndr tv ArgFlag) where
   ppr (Bndr v Required)  = ppr v

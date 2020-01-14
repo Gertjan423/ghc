@@ -2816,7 +2816,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
                  ; return (ctxt, final_arg_tys, res_ty, field_lbls, stricts)
                  }
        ; imp_tvs <- zonkAndScopedSort imp_tvs
-       ; let user_tvs = imp_tvs ++ (binderVars exp_tvbndrs)
+       ; let user_tvbndrs = (mkTyVarBinders SInferred imp_tvs) ++ exp_tvbndrs
 
        ; tkvs <- kindGeneralizeAll (mkSpecForAllTys imp_tvs $
                                     mkForAllTys (tyVarSpecToBinders exp_tvbndrs) $
@@ -2826,13 +2826,15 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
 
              -- Zonk to Types
        ; (ze, tkvs)     <- zonkTyBndrs tkvs
-       ; (ze, user_tvs) <- zonkTyBndrsX ze user_tvs
+       ; (ze, user_tvbndrs) <- zonkTyVarBindersX ze user_tvbndrs
        ; arg_tys <- zonkTcTypesToTypesX ze arg_tys
        ; ctxt    <- zonkTcTypesToTypesX ze ctxt
        ; res_ty  <- zonkTcTypeToTypeX   ze res_ty
 
+       ; let (inf_user_tvs , spec_user_tvs) = splitTyVarsOnSpecificity user_tvbndrs
+
        ; let (univ_tvs, ex_tvs, tkvs', user_tvs', eq_preds, arg_subst)
-               = rejigConRes tmpl_bndrs res_tmpl tkvs user_tvs res_ty
+               = rejigConRes tmpl_bndrs res_tmpl (tkvs ++ inf_user_tvs) spec_user_tvs res_ty -- GJ : TODO This might be wrong. I think this might mess up the variable order.
              -- NB: this is a /lazy/ binding, so we pass six thunks to
              --     buildDataCon without yet forcing the guards in rejigConRes
              -- See Note [Checking GADT return types]
@@ -2841,7 +2843,7 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
              -- tyvars as univ_tvs/ex_tvs, but perhaps in a different order.
              -- See Note [DataCon user type variable binders] in DataCon.
              tkv_bndrs      = mkTyVarSpecBinders SInferred  tkvs'
-             user_tv_bndrs  = mkTyVarSpecBinders SSpecified user_tvs' -- GJ : TODO Not all user def variables are specified
+             user_tv_bndrs  = mkTyVarSpecBinders SSpecified user_tvs'
              all_user_bndrs = tkv_bndrs ++ user_tv_bndrs
 
              ctxt'      = substTys arg_subst ctxt
@@ -2976,7 +2978,6 @@ errors reported in one pass.  See #7175, and #10836.
 --      TI :: forall b1 c1. (b1 ~ c1) => b1 -> :R7T b1 c1
 -- In this case orig_res_ty = T (e,e)
 
--- GJ : TODO Not really an issue, just update the TyVars to become binders
 rejigConRes :: [KnotTied TyConBinder] -> KnotTied Type    -- Template for result type; e.g.
                                   -- data instance T [a] b c ...
                                   --      gives template ([a,b,c], T [a] b c)
