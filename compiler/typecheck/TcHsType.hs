@@ -735,7 +735,7 @@ tc_hs_type mode forall@(HsForAllTy { hst_fvf = fvf, hst_bndrs = hs_tvs
     spec_to_argf SSpecified = case fvf of
       ForallVis   -> return Required
       ForallInvis -> return Specified
-    specToArgf SInferred  = case fvf of -- GJ : TODO Nicer error message
+    spec_to_argf SInferred  = case fvf of -- GJ : TODO Nicer error message
       ForallVis   -> do { addErrTc (text "Unexpected inferred specificity in required forall binder:" <+> ppr forall)
                         ; return Required }
       ForallInvis -> return Inferred
