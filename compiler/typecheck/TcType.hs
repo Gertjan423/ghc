@@ -1178,7 +1178,7 @@ tcSplitForAllTys ty
 -- @'sameVis' argf supplied_argf@ is 'True', where @argf@ is the visibility
 -- of the @ForAllTy@'s binder and @supplied_argf@ is the visibility provided
 -- as an argument to this function.
--- GJ : TODO Update the documentation, to reflect the returned ArgFlags
+-- All split tyvars are annotated with their argf.
 tcSplitForAllTysSameVis :: ArgFlag -> Type -> ([(TyVar,ArgFlag)], Type)
 tcSplitForAllTysSameVis supplied_argf ty = ASSERT( all (isTyVar . fst) (fst sty) ) sty
   where sty = splitForAllTysSameVis supplied_argf ty
