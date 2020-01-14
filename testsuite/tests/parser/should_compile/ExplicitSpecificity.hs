@@ -53,3 +53,20 @@ bar2 = let { x1 = C1 @Int 42
            ; x6 = C6 @Int Proxy
            }
        in ()
+
+pattern Pat1 a = C2 @Type @a Proxy
+pattern Pat2 {k} a = C2 @k @a Proxy
+pattern Pat3 = forall a. C2 @Type @a Proxy
+pattern Pat4 = forall {a}. C2 @Type @a Proxy
+
+bar3 :: (T2 a) -> ()
+bar3 (Pat1 @Int) = ()
+
+bar4 :: (T2 a) -> ()
+bar4 (Pat2 @Int) = ()
+
+bar5 :: (T2 a) -> ()
+bar5 Pat3 = ()
+
+bar6 :: (T2 a) -> ()
+bar6 Pat4 = ()
